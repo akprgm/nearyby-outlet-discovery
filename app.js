@@ -5,9 +5,11 @@ var bodyParsar = require('body-parser');
 var app = Express();//creating app instance of Express router
 app.all('/',function(req,res){
     var utility = require('./controllers/utility');
+    var auth = require('./controllers/app/auth');
+    console.log(auth);
     res.send();
     console.log("server started");
-})
+})  
 app.listen(5000,function(){
     console.log("server listening on port 5000");
 }) 

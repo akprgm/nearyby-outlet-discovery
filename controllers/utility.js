@@ -1,8 +1,7 @@
-module.exports = class Utility{
-    static userInfo(id){
-
-    }
-    static outletInfo(id){
-        
+module.exports = {
+    userInfo: function userInfo(id){
+        console.log("hello world");
+    },
+    outletInfo: function outletInfo(id){  
     }
 }

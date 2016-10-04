@@ -1,6 +1,7 @@
 var Express = require('express');//getting express routing module
 var favicon = require('serve-favicon');
 var morgan = require('morgan');
+var bcrypt = require('bcrypt');
 var bodyParsar = require('body-parser');
 var app = Express();//creating app instance of Express router
 var MongoClient = require('mongodb').MongoClient;
@@ -641,7 +642,90 @@ app.get('/manage/reviewComments',function(req,res){
             console.log(err);
         }
     });
-    res.send("bookMarks management done");
+    res.send("review Comments management done");
+});
+app.get('/manage/reviewLikes',function(req,res){
+    var reviewLikes;    
+    async.series([
+        function(callback){
+           reviewLikes = db.collection('reviewLikes').find();
+           callback();
+        },
+        function(callback){
+            reviewLikes.each(function(err,doc){
+                if(doc){
+                    var user_id = doc.user_id;
+                    var review_id = doc.review_id;
+                    async.parallel([
+                        function(callback){//changing review_id here
+                            var outletinfo = db.collection('rating').find({"reviews.review_id":review_id},{"_id":1,"reviews.review_id":1});
+                            outletinfo.each(function(err,doc){
+                                if(doc){
+                                    var id = doc._id;
+                                    var outlet_id = doc.outlet_id;
+                                    var review_id = doc.reviews[0].review_id;
+                                    db.collection('reviewLikes').update({"review_id":review_id},{$set:{"review_id":id}});
+                                }
+                            });
+                            callback();
+                        },function(callback){//changing user_id here
+                            if(user_id!=0){
+                                var userinfo = db.collection('users').find({"user_id":user_id},{"_id":1,"user_id":1});
+                                userinfo.each(function(err,doc){
+                                    if(doc){
+                                        var user_id = doc.user_id;
+                                        var id = doc._id;
+                                        db.collection('reviewLikes').update({"user_id":user_id},{$set:{"user_id":id}});
+                                    }
+                                });
+                            }
+                            callback();
+                        }
+                    ],function(err,result){
+                        if(err){
+                            console.log(err);
+                        }
+                    });
+                     
+                }
+            });
+            callback();
+        } 
+    ],function(err,result){
+        if(err){
+            console.log(err);
+        }
+    });
+    res.send("review likes management done");
+});
+app.get('/manage/ids',function(req,res){
+    db.collection('users').updateMany({},{$unset:{"user_id":1}});//removing old ids from user collection
+    db.collection('outlets').updateMany({},{$unset:{"outlet_id":1}});//removing old ids from outlet collection
+    db.collection('imageComments').updateMany({},{$unset:{"comment_id":1}});//removing old ids from imageComments collection
+    db.collection('imageLikes').updateMany({},{$unset:{"like_id":1}});//removing old ids from imageLikes collection    
+    db.collection('images').updateMany({},{$unset:{"image_id":1}});//removing old ids from images collection    
+    db.collection('rating').updateMany({},{$unset:{"rating_id":1}});//removing old ids from rating collection    
+    db.collection('rating').updateMany({"reviews.review_id":{$exists:true}},{$unset:{"reviews.$.review_id":1}});
+    db.collection('reviewComments').updateMany({},{$unset:{"comment_id":1}});//removing old ids from imageComments collection
+    db.collection('reviewLikes').updateMany({},{$unset:{"like_id":1}});//removing old ids from imageLikes collection    
+    res.send("id management done");
+});
+app.get('/manage/hashPassword',function(req,res){
+    var bcrypt = require('bcrypt');
+    const saltRounds = 10;
+    var user  = db.collection('users').find({"auth_type":"faagio"},{"_id":1,"password":1});
+    user.each(function(err,doc){
+        if(doc){
+            var id = doc._id;
+            var password = doc.password;
+            bcrypt.genSalt(saltRounds, function(err, salt) {
+                bcrypt.hash(password, salt, function(err, hash) {
+                    db.collection('users').update({"_id":id},{$set:{"password":hash}});
+                });
+            });
+        }    
+    })
+    res.send("password management done");   
 });
 app.listen(5000,function(){
     console.log("server listening on port 5000");
