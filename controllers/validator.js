@@ -1,18 +1,56 @@
-class Validate{
-    static email(email){
-
-    }
-    static token(token){
-
-    }
-    static userId(id){
-
-    }
-    static latLong(lat,long){
-
-    }
-    static offset(offset){
-        if(typeof(offset)!=number && offset >=0){
+module.exports = {
+    validateEmail: function email(email){
+        if(typeof(email) == 'string'){
+            var regex = new RegExp(/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
+            if(regex.test(email)){
+                return true;
+            }else{
+                return false;
+            }
+        }else{
+            return false;
+        }
+    },
+    validateSocialId : function socialId(socialId){
+        if(typeof(socialId) == 'string'){
+            return true;
+        }else{
+            return false;
+        }
+    },
+    validateToken: function token(token){
+        if(typeof(token) == 'string'){
+            return true;
+        }else{
+            return false;
+        }
+    },
+    validateObjectId: function checkId(id){
+        if(typeof(id) == 'string'){
+            var regex = new RegExp(/^[a-f0-9]{24}$/);
+            if(regex.test(id)){
+                return true;
+            }else{
+                return false;
+            }
+        }else{
+            return false;
+        }
+    },
+    validateEmptyObject: function emptyObject(obj){
+        return Object.keys(obj).length === 0;
+    },
+    validateLatitudeLongitude: function latLong(latitude,longitude){
+        if(typeof(latitude) == 'number' && typeof(longitude) == 'number'){
+            return true;
+        }else{
+            return false;
+        }
+    },
+    validateOffset: function offset(offset){
+        if(typeof(offset) == 'number' && offset >=0){
+            return true;
+        }else{
             return false;
         }
     } 

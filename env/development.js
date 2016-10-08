@@ -5,6 +5,7 @@ module.exports = {
   webApp:{
 
   },
+  secretKey: 'skynet@faagio',
   database:{
     host: '127.0.0.1',
     database: 'test',
@@ -12,6 +13,11 @@ module.exports = {
     password: '',
     charset: 'utf8',
     url: 'mongodb://localhost:27017/test',
-    sessionSecret: 'skynet@faagio'
+  },
+  redis:{
+    host:'127.0.0.1',
+    user: '',
+    password: '',
+    port:6379,
   }
 };

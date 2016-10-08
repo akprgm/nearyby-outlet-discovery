@@ -1,5 +1,5 @@
 var mongoose = require('mongoose');
-var schema = requier('./schema.js');
+var schema = require('./schema.js');
 module.exports = {
     user: function userModel(){
         return mongoose.model('user',schema.user);
