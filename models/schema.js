@@ -1,32 +1,11 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
-var outletGallery = new Schema({
-    image_id: {type:Schema.Types.ObjectId, required:true},
-    image: {type:String, required:true} 
-});
-var outletTiming = new Schema({
-    sunday: {type:String, required:true},
-    monday: {type:String, required:true},
-    tuesday: {type:String, required:true},
-    wednesday: {type:String, required:true},
-    thursday: {type:String, required:true},
-    friday: {type:String, required:true},
-    saturday: {type:String, required:true}
-});
-var review = new Schema({
-    _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-    review: {type:String, required:true},
-    images: [String],
-    comments: [String],
-    likes: [String],
-    date: {type:Number,required:true}
-});
 module.exports = {
     user : new Schema({
         name: {type:String, required:true},
         email: {type:String, lowercase:true},
+        image: {type:String},
         gender: {type:String, enum:["m","f",""], default:"f"},
-        access_token: {type:String, required:true, unique:true},
         refresh_token: {type:String, required:true, unique:true},
         city : {type:String, default:""},
         news_letter: {type:Boolean, default:false},
@@ -36,12 +15,15 @@ module.exports = {
         last_active: {type:Number, required:true},
         auth_type: {type:String, enum:["faagio","google","facebook"]},
         password: {type:String, default:""},
-        profile_status: {type:String, default:true},
+        profile_status: {type:String, default:""},
         social_id :{type:String, default:""},
-        phone: [String]
-    }),
+        phone: [String],
+        rating: {type:Number,default:0},
+        review: {type:Number,default:0},
+        image_uploaded: {type:Number,default:0},
+        check_in: {type:Number,default:0},
+    },{ collection: 'users' }),
     outlet   : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
         email: {type:String, required:true, unique:true},
         password: {type:String, required:true},
         name: {type:String, required:true},
@@ -67,84 +49,92 @@ module.exports = {
         user_name: {type:String, required:true},
         latitude: {type:Number, required:true},
         longitude: {type:Number, required:true},
-        gallery: [outletGallery],
+        gallery: [{
+            image_id: {type:Schema.Types.ObjectId, required:true},
+            image: {type:String, required:true}
+        }],
         rating: {type:String, required:true},
         voters: {type:String, required:true},
         contacts: [String],
         outlet_type: [{type:String, required:true}],
-        timing: outletTiming,
+        timing: {
+            sunday: {type:String, required:true},
+            monday: {type:String, required:true},
+            tuesday: {type:String, required:true},
+            wednesday: {type:String, required:true},
+            thursday: {type:String, required:true},
+            friday: {type:String, required:true},
+            saturday: {type:String, required:true}
+        },
         outlet_accept: [String],
         description: {type:String, required:true},
         tags: [String],
         gender: [String],
         exchange: [String],
         labels: [String],
-    }),
-    rating : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        outlet_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
-        star: Number,
-        reviews: [review],
+    },{ collection: 'outlets' }),
+    rating: new Schema({
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        outlet_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        review: {type:String, default:""},
+        images: [mongoose.Schema.Types.ObjectId],
+        comments: [mongoose.Schema.Types.ObjectId],
+        likes: [mongoose.Schema.Types.ObjectId],
         category: {type:String, required:true, enum:["book","cloth","consumer","watch"]},
-        date: {type:Number, required:true},
-    }),
+        date: {type:Number,required:true},
+        star : {type:Number,required:true},
+        helpful: {type:Number,default:0},
+        lol: {type:Number,default:0},
+        awesome: {type:Number,default:0}
+    },{collection: 'rating'}),
     bookMark : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        outlet_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
-        category: {type:String, required:true, enum:["book","cloth","consumer","watch"]},
+        outlet_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        category: {type:String, required:true},
         date: {type:Number, required:true},
-    }),
+    },{ collection: 'bookMarks' }),
     checkIn : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        outlet_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
+        outlet_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
         category: {type:String, required:true, enum:["book","cloth","consumer","watch"]},
         public: {type:Boolean, required:true, default:true},
         date: {type:Number, required:true},
-    }),
-    images : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        outlet_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
+    },{ collection: 'checkIns' }),
+    image : new Schema({
+        outlet_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
         category: {type:String, required:true, enum:["book","cloth","consumer","watch"]},
         image: {type:String, required:true},
         uploaded_by: {type:String, required:true, enum:["admin","outlet","user"]},
-    }),
-    reviewComments : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        review_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
+    },{ collection: 'images' }),
+    reviewComment : new Schema({
+        review_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
         comment: {type:String, required:true},
         date: {type:Number, required:true},
-    }),
-    reviewLikes : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        review_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
-        like_dislike: {type:Boolean, required:true, default:true},
+    },{ collection: 'reviewComments' }),
+    reviewLike : new Schema({
+        review_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        like: {type:Boolean, required:true, default:true},
         date: {type:Number, required:true},
-    }),
-    imageComments : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        image_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
+    },{ collection: 'reviewLikes' }),
+    imageComment : new Schema({
+        image_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
         comment: {type:String, required:true},
-        image_type: {type:String, required:true},
+        image_type: {type:String,default:""},
         date: {type:Number, required:true},
-    }),
-    imageLikes : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        image_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
-        image_type: {type:String, required:true},
+    },{ collection: 'imageComments' }),
+    imageLike : new Schema({
+        image_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        image_type: {type:String, default:""},
         date: {type:Number, required:true},
-    }),
+    },{ collection: 'imageLikes' }),
     errorReport : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        outlet_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
+        outlet_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
         category: {type:String, required:true, enum:["book","cloth","consumer","watch"]},
         header: {type:Boolean, required:true, default:false},
         about: {type:Boolean, required:true, default:false},
@@ -154,12 +144,11 @@ module.exports = {
         reviews: {type:Boolean, required:true, default:false},
         tags: {type:Boolean, required:true, default:false},
         date: {type:Number, required:true}
-    }),
+    },{ collection: 'errorReports' }),
     shutdownReport : new Schema({
-        _id: {type:Schema.Types.ObjectId, required:true, unique:true},
-        outlet_id: {type:Schema.Types.ObjectId, required:true},
-        user_id: {type:Schema.Types.ObjectId, required:true},
-        category: {type:String, required:true, enum:["book","cloth","consumer","watch"]},
+        outlet_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
+        category: {type:String, requsired:true, enum:["book","cloth","consumer","watch"]},
         date: {type:Number, required:true}        
-    })
+    },{ collection: 'shutdownReports' })
 }

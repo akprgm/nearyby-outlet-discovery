@@ -13,9 +13,9 @@
   var undefined;
 
   /** Used as the semantic version number. */
-  var VERSION = '4.16.0';
+  var VERSION = '4.16.4';
 
-  /** Used as the `TypeError` message for "Functions" methods. */
+  /** Error message constants. */
   var FUNC_ERROR_TEXT = 'Expected a function';
 
   /** Used to compose bitmasks for function metadata. */
@@ -40,11 +40,12 @@
       genTag = '[object GeneratorFunction]',
       numberTag = '[object Number]',
       objectTag = '[object Object]',
+      proxyTag = '[object Proxy]',
       regexpTag = '[object RegExp]',
       stringTag = '[object String]';
 
   /** Used to match HTML entities and HTML characters. */
-  var reUnescapedHtml = /[&<>"'`]/g,
+  var reUnescapedHtml = /[&<>"']/g,
       reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
 
   /** Used to map characters to HTML entities. */
@@ -353,6 +354,30 @@
   }
 
   /**
+   * The base implementation of `_.create` without support for assigning
+   * properties to the created object.
+   *
+   * @private
+   * @param {Object} proto The object to inherit from.
+   * @returns {Object} Returns the new object.
+   */
+  var baseCreate = (function() {
+    function object() {}
+    return function(proto) {
+      if (!isObject(proto)) {
+        return {};
+      }
+      if (objectCreate) {
+        return objectCreate(proto);
+      }
+      object.prototype = proto;
+      var result = new object;
+      object.prototype = undefined;
+      return result;
+    };
+  }());
+
+  /**
    * The base constructor for creating `lodash` wrapper objects.
    *
    * @private
@@ -417,18 +442,6 @@
    */
   function baseAssignValue(object, key, value) {
     object[key] = value;
-  }
-
-  /**
-   * The base implementation of `_.create` without support for assigning
-   * properties to the created object.
-   *
-   * @private
-   * @param {Object} prototype The object to inherit from.
-   * @returns {Object} Returns the new object.
-   */
-  function baseCreate(proto) {
-    return isObject(proto) ? objectCreate(proto) : {};
   }
 
   /**
@@ -609,6 +622,15 @@
   function baseGt(value, other) {
     return value > other;
   }
+
+  /**
+   * The base implementation of `_.isArguments`.
+   *
+   * @private
+   * @param {*} value The value to check.
+   * @returns {boolean} Returns `true` if `value` is an `arguments` object,
+   */
+  var baseIsArguments = noop;
 
   /**
    * The base implementation of `_.isDate` without Node.js optimizations.
@@ -2421,11 +2443,10 @@
    * _.isArguments([1, 2, 3]);
    * // => false
    */
-  function isArguments(value) {
-    // Safari 8.1 makes `arguments.callee` enumerable in strict mode.
-    return isArrayLikeObject(value) && hasOwnProperty.call(value, 'callee') &&
-      (!propertyIsEnumerable.call(value, 'callee') || objectToString.call(value) == argsTag);
-  }
+  var isArguments = baseIsArguments(function() { return arguments; }()) ? baseIsArguments : function(value) {
+    return isObjectLike(value) && hasOwnProperty.call(value, 'callee') &&
+      !propertyIsEnumerable.call(value, 'callee');
+  };
 
   /**
    * Checks if `value` is classified as an `Array` object.
@@ -2479,35 +2500,6 @@
    */
   function isArrayLike(value) {
     return value != null && isLength(value.length) && !isFunction(value);
-  }
-
-  /**
-   * This method is like `_.isArrayLike` except that it also checks if `value`
-   * is an object.
-   *
-   * @static
-   * @memberOf _
-   * @since 4.0.0
-   * @category Lang
-   * @param {*} value The value to check.
-   * @returns {boolean} Returns `true` if `value` is an array-like object,
-   *  else `false`.
-   * @example
-   *
-   * _.isArrayLikeObject([1, 2, 3]);
-   * // => true
-   *
-   * _.isArrayLikeObject(document.body.children);
-   * // => true
-   *
-   * _.isArrayLikeObject('abc');
-   * // => false
-   *
-   * _.isArrayLikeObject(_.noop);
-   * // => false
-   */
-  function isArrayLikeObject(value) {
-    return isObjectLike(value) && isArrayLike(value);
   }
 
   /**
@@ -2674,9 +2666,9 @@
    */
   function isFunction(value) {
     // The use of `Object#toString` avoids issues with the `typeof` operator
-    // in Safari 8-9 which returns 'object' for typed array and other constructors.
+    // in Safari 9 which returns 'object' for typed array and other constructors.
     var tag = isObject(value) ? objectToString.call(value) : '';
-    return tag == funcTag || tag == genTag;
+    return tag == funcTag || tag == genTag || tag == proxyTag;
   }
 
   /**
@@ -3008,8 +3000,8 @@
    * @memberOf _
    * @since 4.0.0
    * @category Lang
-   * @param {*} value The value to process.
-   * @returns {string} Returns the string.
+   * @param {*} value The value to convert.
+   * @returns {string} Returns the converted string.
    * @example
    *
    * _.toString(null);

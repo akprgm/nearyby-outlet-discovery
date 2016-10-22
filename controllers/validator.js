@@ -11,6 +11,16 @@ module.exports = {
             return false;
         }
     },
+    validatePassword: function password(password){
+        if(typeof(password) == 'string'){
+            var regex = new RegExp(/[A-Za-z]\w{7,15}$/);
+            if(regex.test(password)){
+                return true;
+            }else{
+                return false;
+            }
+        }
+    },
     validateSocialId : function socialId(socialId){
         if(typeof(socialId) == 'string'){
             return true;
@@ -50,6 +60,17 @@ module.exports = {
     validateOffset: function offset(offset){
         if(typeof(offset) == 'number' && offset >=0){
             return true;
+        }else{
+            return false;
+        }
+    },
+    validateCategory : function category(category){
+        if(typeof(category) == 'string'){
+            if(category === "book" || category === "cloth" || category === "consumer" || category === "watch"){
+                return true;
+            }else{
+                return false;
+            }
         }else{
             return false;
         }

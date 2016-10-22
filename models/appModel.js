@@ -7,11 +7,11 @@ module.exports = {
     outlet: function outletModel(){
         return mongoose.model('outlet',schema.outlet);
     },
-    review: function reviewModel(){
-        return mongoose.model('review',schema.review);
-    },
     rating: function ratingModel(){
         return mongoose.model('rating',schema.rating);
+    },
+    review: function reviewModel(){
+        return mongoose.model('review',schema.review);
     },
     bookMark: function bookMarkModel(){
         return mongoose.model('bookMark',schema.bookMark);
@@ -25,14 +25,14 @@ module.exports = {
     reviewComment: function reviewCommentModel(){
         return mongoose.model('reviewComment',schema.reviewComment);
     },
-    reviewLikes: function reviewLikesModel(){
-        return mongoose.model('reviewLikes',schema.reviewLikes);
+    reviewLike: function reviewLikesModel(){
+        return mongoose.model('reviewLikes',schema.reviewLike);
     },
     imageComment: function imageCommentModel(){
         return mongoose.model('imageComment',schema.imageComment);
     },
-    imageLikes: function imageLikesModel(){
-        return mongoose.model('imageLikes',schema.imageLIkes);
+    imageLike: function imageLikesModel(){
+        return mongoose.model('imageLikes',schema.imageLike);
     },
     errorReport: function errorReportModel(){
         return mongoose.model('errorReport',schema.errorReport);
