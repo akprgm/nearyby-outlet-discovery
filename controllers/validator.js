@@ -48,7 +48,7 @@ module.exports = {
         }
     },
     validateEmptyObject: function emptyObject(obj){
-        return Object.keys(obj).length === 0;
+        return Object.keys(obj).length !== 0;
     },
     validateLatitudeLongitude: function latLong(latitude,longitude){
         if(typeof(latitude) == 'number' && typeof(longitude) == 'number'){

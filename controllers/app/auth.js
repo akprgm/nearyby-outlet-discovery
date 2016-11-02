@@ -64,7 +64,7 @@ module.exports = {
                                         if(user){
                                             utility.redisSetExpireTime(dataObject.social_id);
                                             utility.userSendData(user,function(user){
-                                                user.access_token = jwt.sign({id:user.email},env.secretKey,{expiresIn: 10});//access token for user                                        
+                                                user.access_token = jwt.sign({id:user.email},env.secretKey,{expiresIn: '1d'});//access token for user                                        
                                                 utility.successDataRequest(user,response);                                                                                            
                                             });
                                         }else{
@@ -228,7 +228,6 @@ module.exports = {
                             let access_token = jwt.sign({id:user.email},env.secretKey,{expiresIn: '1d'});//access token for user
                             utility.successDataRequest(access_token,response);
                         }else{
-                            console.log(dataObject.refresh_token);
                             utility.unauthorizedRequest(response);
                         }                     
                     }else{
@@ -247,7 +246,7 @@ module.exports = {
                     }
                 });             
             });
-        }else{
+        }else{  
             utility.badRequest(response);
         }
     }

@@ -38,7 +38,6 @@ var IMAGE = {
 }
 module.exports = {
     uploadImage: function uploadImage(){
-        
     },
     commentImage: function commentImage(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.image_id) && typeof(dataObject.comment) == 'string'){
@@ -85,5 +84,9 @@ module.exports = {
          }else{
             utility.badRequest(response);
         }
+    },
+    getUserPics: function getUserPics(dataObject, response){    
+    },
+    getOutletPics: function getOutletPics(dataObject, response){       
     }
 } 

@@ -47,17 +47,12 @@ module.exports = {
         brands: {type:String, required:true},
         category: {type:String, required:true},
         user_name: {type:String, required:true},
-        latitude: {type:Number, required:true},
-        longitude: {type:Number, required:true},
-        gallery: [{
-            image_id: {type:Schema.Types.ObjectId, required:true},
-            image: {type:String, required:true}
-        }],
-        rating: {type:String, required:true},
-        voters: {type:String, required:true},
+        location: [Number,Number],
+        star: {type:Number, required:true},
+        rating: {type:Number, required:true},
         contacts: [String],
         outlet_type: [{type:String, required:true}],
-        timing: {
+        timings: {
             sunday: {type:String, required:true},
             monday: {type:String, required:true},
             tuesday: {type:String, required:true},
@@ -67,11 +62,11 @@ module.exports = {
             saturday: {type:String, required:true}
         },
         outlet_accept: [String],
-        description: {type:String, required:true},
+        about: {type:String, required:true},
         tags: [String],
         gender: [String],
-        exchange: [String],
-        labels: [String],
+        labels: {
+        },
     },{ collection: 'outlets' }),
     rating: new Schema({
         user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
@@ -86,7 +81,7 @@ module.exports = {
         helpful: {type:Number,default:0},
         lol: {type:Number,default:0},
         awesome: {type:Number,default:0}
-    },{collection: 'rating'}),
+    },{collection: 'ratings'}),
     bookMark : new Schema({
         outlet_id: {type:mongoose.Schema.Types.ObjectId, required:true},
         user_id: {type:mongoose.Schema.Types.ObjectId, required:true},

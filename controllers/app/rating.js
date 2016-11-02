@@ -2,16 +2,18 @@ var mongoose = require('mongoose');
 var redis = require('redis');
 var fs = require('fs');
 var gm = require('gm');
+var request = require('request');
 var models = require('../../models/appModel');
 var validator = require('../validator');
 var utility = require('../utility');
+var env = require('../../env/development');
 var RatingModel = models.rating;
 var Rating = new RatingModel();
 var ReviewCommentModel = models.reviewComment;
 var ReviewComment = new ReviewCommentModel();
 var ReviewLikeModel = models.reviewLike;
 var ReviewLike = new ReviewLikeModel();
-var RATING = {
+let RATING = {
     saveImage: function saveImage(imageArray,user_id,callback){
         let length = imageArray.length;
         for(let i=0; i< length; i++){
@@ -55,23 +57,23 @@ module.exports = {
                 obj.review = dataObject.review;
                 let rating = new Rating(obj);
                 rating.save(function(err,result){
-                    if(!err,result){
+                    if(!err && result){//find user Reviews and store them in redis cache
+                        utility.saveUserReviews(dataObject);
                         utility.successRequest(response);
                     }else{
                         utility.internalServerError(response);
                     }
                 });
             }else{
-                Rating.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{},{"limit":1} ,function(err,result){//only rating so here we will try to find whether already rated or not
-                    var ratingKey = dataObject.user_id+":rating";
+                Rating.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id,"review":""},{},{"limit":1} ,function(err,result){//only rating so here we will try to find whether already rated or not
                     if(!err && result.length>0){
                         let date = (new Date).getTime();
-                        Rating.update({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"$set":{"star":dataObject.star,"date":date}},function(err,result){//already rated so here updating user rating for this outlet
-                            if(!err,result.nModified>0){
-                                Rating.find({"user_id":dataObject.user_id}).sort({"date":-1}).exec(function(err,result){
-                                    if(!err && result.length>0){
-                                        utility.redisSaveKey(ratingKey,JSON.stringify(result));
-                                    }else{}
+                        Rating.update({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id,"review":""},{"$set":{"star":dataObject.star,"date":date}},function(err,result){//already rated so here updating user rating for this outlet
+                            if(!err && result.nModified>0){
+                                request(ratingUrl,function(err,res,body){
+                                    if(!err && res.statusCode==200){
+                                        utility.redisSaveKey(ratingKey,JSON.stringify(body.message));
+                                    }
                                 });
                                 utility.successRequest(response);
                             }else{
@@ -81,12 +83,8 @@ module.exports = {
                     }else{//inserting new rating 
                         let rating = new Rating(obj);
                         rating.save(function(err,result){
-                            if(!err,result){
-                                Rating.find({"user_id":dataObject.user_id}).sort({"date":-1}).exec(function(err,result){//caching all ratings for user
-                                    if(!err && result.length>0){
-                                        utility.redisSaveKey(ratingKey,JSON.stringify(result));
-                                    }else{}
-                                });
+                            if(!err && result){
+                                utility.saveUserRating(dataObject);
                                 utility.successRequest(response);
                             }else{
                                 utility.internalServerError(response);
@@ -163,9 +161,9 @@ module.exports = {
             utility.badRequest(response);
         }
     },
-    getRatings: function getRating(dataObject, response){//getting user rating for particular outlet
+    getUserRatings: function getUserRating(dataObject, response){//getting user rating for particular outlet
         if(validator.validateObjectId(dataObject.user_id)){      
-            let ratingKey = dataObject.user_id+":rating"; 
+            let ratingKey = dataObject.user_id+":ratings"; 
             utility.redisFindKey(ratingKey,function(result){
                 if(ratings = JSON.parse(result)){
                     utility.successDataRequest(ratings,response);
@@ -188,9 +186,9 @@ module.exports = {
             utility.badRequest(response);
         }
     },
-    getReviews: function getReviews(dataObject, response){//getting user reviews for particular outlet
+    getUserReviews: function getUserReviews(dataObject, response){//getting user reviews for particular outlet
         if(validator.validateObjectId(dataObject.user_id)){      
-            let reviewKey = dataObject.user_id+":review"; 
+            let reviewKey = dataObject.user_id+":reviews"; 
             utility.redisFindKey(reviewKey,function(result){
                 if(ratings = JSON.parse(result)){
                     utility.successDataRequest(ratings,response);
@@ -199,7 +197,31 @@ module.exports = {
                     let user_id = mongoose.Types.ObjectId(dataObject.user_id);
                     Rating.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"review":{"$ne":""},"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(err){
-                            console.log(err);
+                            utility.internalServerError(response);
+                        }else if(result.length>0){
+                            utility.redisSaveKey(reviewKey,JSON.stringify(result));
+                            utility.successDataRequest(result,response);
+                        }else{
+                            utility.failureRequest(response);
+                        }
+                    });     
+                }
+            });
+        }else{
+            utility.badRequest(response);
+        }   
+    },
+    getOutletReviews: function getOutletReviews(dataObject, response){//getting outlet reviews for particular outlet
+        if(validator.validateObjectId(dataObject.outlet_id)){      
+            let reviewKey = dataObject.outlet_id+":review"; 
+            utility.redisFindKey(reviewKey,function(result){
+                if(ratings = JSON.parse(result)){
+                    utility.successDataRequest(ratings,response);
+                }else{
+                    let Rating = new RatingModel();
+                    let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
+                    Rating.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"outlet_id":outlet_id,"review":{"$ne":""},"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"locality":"$outlet_info.locality","outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1}},{"$sort":{"date":-1}}],function(err,result){
+                        if(err){
                             utility.internalServerError(response);
                         }else if(result.length>0){
                             utility.redisSaveKey(reviewKey,JSON.stringify(result));

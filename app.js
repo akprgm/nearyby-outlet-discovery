@@ -5,7 +5,9 @@ var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var redis = require('redis');
 var env = require('./env/development');
-var appRouter = require('./routes/appRoute.js');
+var appRouter = require('./routes/appRoute');
+var utility = require('./controllers/utility');
+var validator = require('./controllers/validator');
 var app = Express();//creating app instance of Express router
 mongoose.Promise = global.Promise;
 mongoose.connect(env.database.url);
@@ -22,18 +24,15 @@ client.on('error', function(err) {
     console.log('Connection failed to Redis');
 });
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(function(err, request, response, next) {//checking for bad request errors
+app.use(bodyParser.urlencoded({ extended: false}));
+app.use(function(err,request, response, next) {//checking for bad request error
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-        var data = {
-            status: false,
-            message: "invalid request "
-        }
-        response.statusCode = 400;
-        response.send(data);
+        utility.badRequest(response);
+    }else{
+        next();
     }
 });
-app.use('/', appRouter);
+app.use(appRouter);
 app.listen(5000,function(){
     console.log("server listening on port 5000");
 }) 

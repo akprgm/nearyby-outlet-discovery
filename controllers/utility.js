@@ -2,6 +2,7 @@ var mongoose = require('mongoose');
 var redis = require('redis');
 var async = require('async');
 var jwt = require('jsonwebtoken');
+var request = require('request');
 var env = require('../env/development');
 var models = require('../models/appModel');
 var validator = require('./validator');
@@ -112,46 +113,170 @@ module.exports = {
         callback(basicInfo);    
     },
     outletInfo: function outletInfo(outlet_id,callback){
-        if(validator.validateUserId(outlet_id)){
+        if(validator.validateObjectId(outlet_id)){
             if(redisFlag){
                 redisClient.get(outlet_id,function(err,outlet){
                     if(outlet && !err){
                         outlet = JSON.parse(outlet);
-                        var outletInfo = {
-                            "outlet_id": outlet._id,
-                            "name": outlet.name,
-                            "cover_image": outlet.cover_image
-                        }
                         redisClient.expire(outlet_id,3600*12);
-                        callback(outletInfo);
+                        callback(outlet);
                     }else{
-                        var outletInfo = utility.outletInfo(outlet_id);
-                        redisClient.set(outlet_id,JSON.stringify(outlet));
-                        redisClient.expire(outlet_id,3600*12);
-                        callback(outletInfo);  
+                        utility.outlet(outlet_id,function(outlet){
+                            redisClient.set(outlet_id,JSON.stringify(outlet));
+                            redisClient.expire(outlet_id,3600*12);
+                            callback(outlet);  
+                        });
                     }
                 });
             }else{
                 var outletInfo = outletInfo(outlet_id);
                 callback(outletInfo);
             }
-            var outletModel = models.outlet;
-            var outlet = new outletModel();
-            outlet.findById(outlet_id,function(err,outlet){
-                if(err){
-                    return false;
-                }else{
-                    var outletInfo = {
-                        "outlet_id": outlet._id,
-                        "name": outlet.name,
-                        "cover_image": outlet.cover_image
-                    }
-                    callback(outletInfo);                
-                }
-            })
         }else{//validation of id failed
             return false
         }  
+    },
+    outletBasicData: function outletBasicData(outlet,callback){
+        let basicInfo = {
+            outlet_id: outlet._id,
+            name: outlet.name,
+            image: (outlet.image)?outlet.image:"default_user_pic.jpg",
+            locality: outlet.locality
+        }
+        callback(basicInfo);    
+    },
+    saveUserReviews: function saveUserReviews(dataObject){
+        let userReviewKey = dataObject.user_id+":reviews";
+        let userReviewUrl = env.app.url+"getUserReviews?user_id="+dataObject.user_id+"&access_token="+dataObject.access_token;
+        request(userReviewUrl,function(err,res,body){
+            if(!err && res.statusCode==200){
+                module.exports.redisSaveKey(userReviewKey,JSON.stringify(body.message));
+            }
+        });
+        let outletReviewKey = dataObject.outlet_id+":reviews";
+        let outletReviewUrl = env.app.url+"getOutletReviews?outlet_id="+dataObject.outlet_id+"&access_token="+dataObject.access_token;
+        request(outletReviewUrl,function(err,res,body){
+            if(!err && res.statusCode==200){
+                module.exports.redisSaveKey(outletReviewKey,JSON.stringify(body.message));
+            }
+        });
+    },
+    saveUserRating: function saveUserRating(dataObject){
+        var ratingKey = dataObject.user_id+":ratings";
+        let ratingUrl = env.app.url+"getUserRatings?user_id="+dataObject.user_id+"&access_token="+dataObject.access_token;                                
+        request(ratingUrl,function(err,res,body){
+            if(!err && res.statusCode==200){
+                module.exports.redisSaveKey(ratingKey,JSON.stringify(body.message));
+            }
+        });
+    },
+    saveOutletDetails : function saveOutletDetails(dataObject){
+        if(validator.validateObjectId(dataObject.outlet_id)){
+            async.waterfall([
+                function(callback){//finding the outlet Deatils
+                    let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
+                    Outlet.find({"_id":outlet_id,"status":true},function(err,outlet){
+                        if(!err && outlet.length>0){
+                            callback(null,outlet[0]);
+                        }else{
+                            utility.badRequest(response);
+                        }
+                    });         
+                },
+                function(outlet,callback){
+                    var obj = {
+                        name: outlet.name,
+                        cover_image: outlet.cover_image,
+                        address: outlet.address,
+                        star: outlet.star,
+                        rating: outlet.rating,
+                        about: outlet.about,                        
+                        location: outlet.location,
+                        contacts: outlet.contacts,
+                        discount: outlet.discount,
+                        timings: outlet.timings,
+                        tags: outlet.tags,
+                        labels: outlet.labels
+                    }
+                    switch(outlet.category){
+                        case 'book':
+                                obj.stm = {
+                                    cost_rating: outlet.cost_rate,
+                                    exchange_policy: outlet.labels.exchange_policy,
+                                    exchange_days: outlet.labels.exchange_days,
+                                    return_policy: outlet.labels.return_policy,
+                                    return_days: outlet.labels.return_days,
+                                    second_hand_book: outlet.labels.second_hand_book,
+                                    outlet_accept: outlet.outlet_accept
+                                }
+                            break;
+                        case 'cloth':
+                                obj.stm = {
+                                    cost_rating: outlet.cost_rate,
+                                    gender: outlet.gender,
+                                    outlet_type: outlet.outlet_type,
+                                    outlet_accept: outlet.outlet_accept
+                                } 
+                            break;
+                        case 'consumer':
+                                obj.stm = {
+                                    cost_rating: outlet.cost_rate,
+                                    exchange_policy: outlet.labels.exchange_policy,
+                                    exchange_days: outlet.labels.exchange_days,
+                                    return_policy: outlet.labels.return_policy,
+                                    return_days: outlet.labels.return_days,
+                                    outlet_accept: outlet.outlet_accept,
+                                    EMI: outlet.labels.EMI,
+                                    buy_back: outlet.labels.buy_back,
+                                    repair_service: outlet.labels.repair_service
+                                }
+                            break;
+                        case 'watch':
+                                obj.stm = {
+                                    cost_rating: outlet.cost_rate,
+                                    outlet_accept: outlet.outlet_accept,
+                                    repair_service: outlet.labels.repair_service
+                                }
+                            break;
+                        default:
+                    }
+
+                    //getting outle review and images 
+                    async.parallel([
+                        function(callback2){
+                            let outletReviewUrl = env.app.url+"getOutletReviews?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id;
+                            request(outletReviewUrl,function(err,res,body){
+                                if(!err && res.statusCode==200){
+                                    let data = JSON.parse(body);
+                                    obj.reviews = (data.message).slice(0,2);    
+                                }else{
+                                    obj.reviews = new Array();
+                                }
+                                callback2();                            
+                            });
+                        },
+                        function(callback2){
+                           let outletImageUrl = env.app.url+"getOutletImages?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id;
+                            request(outletImageUrl,function(err,res,body){
+                                if(!err && res.statusCode==200){
+                                    let data = JSON.parse(body);
+                                    obj.images = data.message;
+                                }else{
+                                    obj.images = new Array();
+                                }
+                                callback2();                            
+                            });
+                        }
+                    ],function(err, result){
+                        callback(null,obj);                                            
+                    });
+                }
+            ],function(err,result){
+                if(!err && validator.validateEmptyObject(result)){
+                    module.exports.redisSaveKey(dataObject.outlet_id,JSON.stringify(result));         
+                }
+            });
+        }   
     },
     sendMail: function sendMail(outlet_id,callback){
     },
@@ -214,13 +339,12 @@ module.exports = {
     verifyToken: function verifyToken(token,type,response,callback){
         switch (type) {
             case 'refresh':
-                    jwt.verify(token,env.secretKey,{ignoreExpires:true},function(err,decoded){
+                    jwt.verify(token,env.secretKey,{ignoreExpiration:true},function(err,decoded){
                         if(err){
                             module.exports.badRequest(response);
                         }else if(decoded){
                             callback();
                         }else{
-                            response.send(decoded);
                             module.exports.unauthorizedRequest(response);
                         }
                     });                
@@ -228,6 +352,7 @@ module.exports = {
             default:
                     jwt.verify(token,env.secretKey,function(err,decoded){
                         if(err){
+                            console.log(err);
                             module.exports.badRequest(response);
                         }else if(decoded){
                             callback();

@@ -1,6 +1,7 @@
 module.exports = {
     app:{
-        port:5000
+        port:5000,
+        url: "http://localhost/node/"
     },
     webApp:{
     },

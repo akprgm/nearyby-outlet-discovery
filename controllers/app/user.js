@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 var redis = require('redis');
 var async = require('async');
-//var request = require('request');
+var request = require('request');
 var models = require('../../models/appModel');
 var validator = require('../validator');
 var utility = require('../utility');
@@ -138,5 +138,5 @@ module.exports = {
         }else{
             utility.badRequest(response);
         }
-    }
+    }  
 }
