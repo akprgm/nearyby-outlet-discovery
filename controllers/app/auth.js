@@ -250,5 +250,4 @@ module.exports = {
             utility.badRequest(response);
         }
     }
-
 }

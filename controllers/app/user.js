@@ -52,6 +52,67 @@ var USER = {
 }
 module.exports = {
     userProfile: function userProfile(dataObject, response){
+        if(validator.validateObjectId(dataObject.user_id)){
+            async.parallel([
+                function(callback){//getting user reviews
+                    var reviewUrl = env.app.url+"getUserReviews?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id;
+                    request(reviewUrl,function(err,res,body){
+                        if(!err && res.statusCode ==200){
+                            let data = JSON.parse(body);
+                            callback(null,data.message);                    
+                        }else if(!err && res.statusCode ==204){
+                            callback(null, new Array());
+                        }else{
+                            callback(err);
+                        }
+                    });
+                },
+                function(callback){//getting user ratings
+                    var ratingUrl = env.app.url+"getUserRatings?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id;
+                    request(ratingUrl,function(err,res,body){
+                        if(!err && res.statusCode ==200){
+                            let data = JSON.parse(body);
+                            callback(null,data.message);                    
+                        }else if(!err && res.statusCode ==204){
+                            callback(null, new Array());
+                        }else{
+                            callback(err);
+                        }
+                    });
+                },
+                function(callback){//getting user checkins
+                    var checkInUrl = env.app.url+"getCheckIns?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id;
+                    request(checkInUrl,function(err,res,body){
+                        if(!err && res.statusCode ==200){
+                            let data = JSON.parse(body);
+                            callback(null,data.message);                    
+                        }else if(!err && res.statusCode ==204){
+                            callback(null, new Array());
+                        }else{
+                            callback(err);
+                        }
+                    });
+                },
+                function(callback){
+                    callback(null,new Array());
+                }
+            ],function(err, results){
+                 if(!err && results.length>0){
+                    var jsonObject = {
+                        status: true,
+                        reviews: results[0],
+                        ratings: results[1],
+                        checkIns: results[2],
+                        photos: results[3]
+                    }
+                    response.send(jsonObject);
+                }else{
+                    utility.internalServerError(response);
+                }
+            })
+        }else{
+            utility.badRequest(response);
+        } 
     },
     userRanking: function userRanking(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id)){
@@ -133,6 +194,46 @@ module.exports = {
                     }
                 }else{
                     utility.internalServerError(response);
+                }
+            });
+        }else{
+            utility.badRequest(response);
+        }
+    },
+    likeProfile: function likeProfile(dataObject, response){
+        if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.profile_id)){
+            let User = new UserModel();
+            User.update({"_id":dataObject.user_id},{"$pull":{"likedProfiles":dataObject.profile_id}},function(err,result){
+                if(!err && result.nModified>0){//already liked by user
+                    utility.successRequest(response);
+                }else{//liking profile
+                    User.update({"_id":dataObject.user_id},{"$push":{"likedProfiles":dataObject.profile_id}},function(err,result){
+                        if(!err && result.nModified>0){
+                            utility.successRequest(response);                            
+                        }else{
+                            utility.internalServerError(response);
+                        }      
+                    });       
+                }
+            });
+        }else{
+            utility.badRequest(response);
+        }
+    },
+    followOutlet: function followOutlet(dataObject, response){
+        if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id)){
+            let User = new UserModel();
+            User.update({"_id":dataObject.user_id},{"$pull":{"followedOutlets":dataObject.outlet_id}},function(err,result){
+                if(!err && result.nModified>0){//already liked by user
+                    utility.successRequest(response);
+                }else{//liking profile
+                    User.update({"_id":dataObject.user_id},{"$push":{"followedOutlets":dataObject.outlet_id}},function(err,result){
+                        if(!err && result.nModified>0){
+                            utility.successRequest(response);                            
+                        }else{
+                            utility.internalServerError(response);
+                        }      
+                    });       
                 }
             });
         }else{

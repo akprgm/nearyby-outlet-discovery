@@ -58,7 +58,9 @@ module.exports = {
         }
     },
     validateOffset: function offset(offset){
-        if(typeof(offset) == 'number' && offset >=0){
+        if(typeof(offset) == 'undefined'){
+            return false;
+        }else if(parseInt(offset)>=0){
             return true;
         }else{
             return false;

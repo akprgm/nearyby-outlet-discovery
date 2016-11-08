@@ -22,6 +22,8 @@ module.exports = {
         review: {type:Number,default:0},
         image_uploaded: {type:Number,default:0},
         check_in: {type:Number,default:0},
+        likedProfiles: [{type:mongoose.Schema.Types.ObjectId, required:true}],
+        followedOutlets: [{type:mongoose.Schema.Types.ObjectId, required:true}] 
     },{ collection: 'users' }),
     outlet   : new Schema({
         email: {type:String, required:true, unique:true},

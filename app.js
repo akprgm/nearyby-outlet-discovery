@@ -16,7 +16,7 @@ var client = redis.createClient(env.redis.port, env.redis.host, {no_ready_check:
     if(err){
         console.log(err);
     }
-});*/
+});*/ 
 client.on('connect', function() {
     console.log('Connected to Redis');
 });

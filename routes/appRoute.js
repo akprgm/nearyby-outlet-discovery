@@ -11,6 +11,7 @@ var image = require('../controllers/app/image');
 var user = require('../controllers/app/user');
 var getNear = require('../controllers/app/getNear');
 var outlet = require('../controllers/app/outlet');
+var search = require('../controllers/app/search');
 var router = Express.Router();
 router.post('/login',function(request,response){//route for login user
     auth.login(request.body,response);
@@ -47,22 +48,18 @@ router.use(function(request,response,next){
         utility.badRequest(response);
     }
 });
-router.get('/user',function(request,response){//route for getting user profile
-    utility.userInfo('57ff3c9e3c799fcdc171b968',function(user){
-        if(user){
-            utility.userBasicData(user,function(info){
-                response.send(info);
-            })
-        }else{
-            response.send("error");
-        }
-    });
-});
 router.get('/userProfile',function(request,response){
+    user.userProfile(request.query,response);
 });
 router.get('/userRanking',function(request,response){
     user.userRanking(request.query,response);
 });
+router.get('/likeProfile',function(request,response){
+    user.likeProfile(request.query,response);
+});
+router.get('/followOutlet',function(request,response){
+    user.followOutlet(request.query,response);
+});  
 router.get('/getUserPics',function(request,response){
 });
 router.get('/getNearOutlets',function(request,response){
@@ -108,7 +105,7 @@ router.get('/getUserBookMarks',function(request,response){//route for getting us
     bookMark.getBookMarks(request.query,response);
 });
 router.get('/checkInOutlet',function(request,response){//route for checkin outlet
-    checkIn.checkInOutlet(request.query,response);
+    checkIn.checkInOutlet(request.query ,response);
 });
 router.get('/getCheckIns',function(request,response){//route for getting all userCheckins
     checkIn.getCheckIns(request.query,response);
@@ -122,6 +119,9 @@ router.get('/likeImage',function(request,response){//route for liking review
 router.get('/commentImage',function(request,response){//route for commenting on review
     image.commentImage(request.query,response);
 });
+router.get('/search',function(request,response){
+    search.searchString(request.query,response);
+})
 router.post('/getToken',function(request,response){//route for getting new token when old expires
     auth.getToken(request.body,response)
 });
@@ -130,13 +130,13 @@ router.post('/verifyToken',function(request,response){
         response.send("token valid");
     });
 });
-router.get('/outlet',function(req,res){//route for getting outlet profile 
-    utility.outletInfo('5811d965af61b7e7357497b0',function(outlet){
-        if(outlet){
-            utility.outletBasicData(outlet,function(result){
-                res.send(result);
-            });
-        }
-    });
+router.get('/testing',function(requet,response){
+    let result = utility.checkImage(env.app.base_directory+"/controllers/utility.js");
+    if(result){
+        response.send("file found");
+    }else{
+        response.send("file not found");
+    }
 });
+
 module.exports = router;

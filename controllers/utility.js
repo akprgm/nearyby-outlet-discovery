@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var fs = require('fs');
 var redis = require('redis');
 var async = require('async');
 var jwt = require('jsonwebtoken');
@@ -136,14 +137,37 @@ module.exports = {
             return false
         }  
     },
-    outletBasicData: function outletBasicData(outlet,callback){
-        let basicInfo = {
-            outlet_id: outlet._id,
-            name: outlet.name,
-            image: (outlet.image)?outlet.image:"default_user_pic.jpg",
-            locality: outlet.locality
+    checkImage: function checkImage(image_path,image_access_path){
+        try{
+            var fd = fs.openSync(image_path,'r');
+            fs.closeSync(fd);
+            return image_access_path;
+        }catch(err){
+            return false;
         }
-        callback(basicInfo);    
+    },
+    checkOutletImage: function checkOutletImage(image,category,type){
+        let image_path = env.app.gallery_directory+category+"/gallery/"+image;
+        let image_access_path = env.app.gallery_url+category+"/gallery/"+image;
+        return module.exports.checkImage(image_path,image_access_path);
+    },
+    outletDefaultCoverImage: function defaultImage(result){
+        async.forEachOf(result,function(value,key,callback){
+            let cover_image = value.outlet_info[0].cover_image;
+            let category = value.outlet_info[0].category;
+            let image_path = env.app.gallery_url+category+"/cover_images/"+cover_image;
+            let image_access_path = env.app.gallery_url+category+"/cover_images/"+cover_image;            
+            let new_image_url = module.exports.checkImage(image_path,image_access_path);
+            if(new_image_url){
+                value.outlet_info[0].cover_image = new_image_url;
+            }else{
+                value.outlet_info[0].cover_image = "yoyo";
+            }
+        },function(err){
+            if(err){
+                utility.internalServerError(response);
+            }
+        });
     },
     saveUserReviews: function saveUserReviews(dataObject){
         let userReviewKey = dataObject.user_id+":reviews";
@@ -352,8 +376,7 @@ module.exports = {
             default:
                     jwt.verify(token,env.secretKey,function(err,decoded){
                         if(err){
-                            console.log(err);
-                            module.exports.badRequest(response);
+                            module.exports.unauthorizedRequest(response);
                         }else if(decoded){
                             callback();
                         }else{
