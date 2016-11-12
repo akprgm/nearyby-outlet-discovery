@@ -7,12 +7,24 @@ var validator = require('../validator');
 var models = require('../../models/appModel');
 var OutletModel = models.outlet;
 var Outlet = new OutletModel();
+var BookMarkModel = models.bookMark;
+var BookMark = new BookMarkModel;
 module.exports = {
     outletDetails: function outletDetails(dataObject, response){
-        if(validator.validateObjectId(dataObject.outlet_id)){
+        if(validator.validateObjectId(dataObject.outlet_id) && validator.validateObjectId(dataObject.user_id)){
             utility.redisFindKey(dataObject.outlet_id,function(outlet){
                 if(outlet = JSON.parse(outlet)){
-                    utility.successDataRequest(outlet,response);
+                     BookMark.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"outlet_id":1},function(err,bookMark){
+                        if(!err){
+                            if(bookMark.length){
+                                outlet.bookMark = true;
+                                utility.successDataRequest(outlet,response);                            
+                            }else{
+                                outlet.bookMark = false;
+                                utility.successDataRequest(outlet,response);                            
+                            }
+                        }
+                    });
                 }else{
                     async.waterfall([
                         function(callback){//finding the outlet Deatils
@@ -98,7 +110,7 @@ module.exports = {
                                     });
                                 },
                                 function(callback2){
-                                let outletImageUrl = env.app.url+"getOutletImages?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id;
+                                    let outletImageUrl = env.app.url+"getOutletImages?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id;
                                     request(outletImageUrl,function(err,res,body){
                                         if(!err && res.statusCode==200){
                                             let data = JSON.parse(body);
@@ -115,8 +127,18 @@ module.exports = {
                         }
                     ],function(err,result){
                         if(!err && validator.validateEmptyObject(result)){
-                            utility.redisSaveKey(dataObject.outlet_id,JSON.stringify(result));        
-                            utility.successDataRequest(result,response);
+                            utility.redisSaveKey(dataObject.outlet_id,JSON.stringify(result));
+                            BookMark.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"outlet_id":1},function(err,bookMark){
+                                if(!err){
+                                    if(bookMark.length){
+                                        result.bookMark = true;
+                                        utility.successDataRequest(result,response);                            
+                                    }else{
+                                        result.bookMark = false;
+                                        utility.successDataRequest(result,response);                            
+                                    }
+                                }
+                            });      
                         }else{
                             utility.internalServerError(response);
                         }
@@ -126,7 +148,5 @@ module.exports = {
         }else{
             utility.badRequest(response);
         }     
-    },
-    outletBasicInfo: function outletBasicInfo(dataObject, response){
     }
 }

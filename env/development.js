@@ -2,7 +2,7 @@ module.exports = {
     app:{
         port:5000,
         url: "http://localhost/node/",
-        gallery_url: "http://localhost/node/public/assets/gallery",
+        gallery_url: "http://10.0.0.4/public/assets/gallery",
         base_directory: "/home/faagio/faagioNode/",
         gallery_directory: "/home/faagio/faagioNode/public/assets/gallery/"
     },

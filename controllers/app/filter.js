@@ -10,48 +10,7 @@ var OutletModel = models.outlet;
 var Outlet = new OutletModel;
 var BookMarkModel = models.bookMark;
 var BookMark = new BookMarkModel;
-var OUTLET = {
-    searchOutlets: function searchOutlets(query,user_id,response){
-        async.waterfall([
-            function(callback){
-                async.parallel([
-                    function(innerCallback){
-                         Outlet.aggregate(query,function(err,result){
-                           if(!err && result){
-                                innerCallback(null,result)
-                            }else{
-                                utility.internalServerError(response);
-                            }
-                        });
-                    },
-                    function(innerCallback){
-                        OUTLET.findBookMarkOutlet(user_id,function(result){
-                            innerCallback(null,result);
-                        });
-                    }
-                ],function(err,result){
-                    if(!err && result.length){
-                        callback(null,result);
-                    }else{
-                        utility.internalServerError(response);
-                    }
-                });
-            },
-            function(result,callback){
-                var outlets = result[0];
-                var bookMarks = result[1];
-                OUTLET.checkOutlet(outlets,bookMarks,function(result){
-                    callback(null,result);
-                });
-            }
-        ],function(err,result){
-            if(err){
-                utility.internalServerError(response);
-            }else{
-                utility.successDataRequest(result,response);
-            }
-        });
-    },
+var FILTER = {
     checkOutlet: function checkOutlet(outlets,bookMarks,checkCallback){
         async.map(outlets,function(value,valueCallBack){
             let cover_image = value.cover_image;
@@ -89,27 +48,12 @@ var OUTLET = {
             }
         });
     },
-    findBookMarkOutlet: function findBookMarkOutlet(user_id,bookMarkCallBack){
-        BookMark.find({"user_id":user_id},{"outlet_id":1},function(err,result){
-            if(!err){
-                bookMarkCallBack(result);
-            }else{
-                bookMarkCallBack(null);
-            }
-        }); 
-    }
-}
-module.exports = {
-    searchString: function(dataObject, response){
-        if((validator.validateObjectId(dataObject.user_id)) && (typeof(dataObject.search_string) == 'string') && (validator.validateOffset(dataObject.offset))){
-            async.waterfall([
-                function(callback){
-                    async.parallel([
-                        function(innerCallback){
-                            let offset = parseInt(dataObject.offset);
-                            Outlet.aggregate([
-                                {"$match":{"$text":{"$search":dataObject.search_string}}},{"$project":{"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"contacts":1}},{"$sort":{"score":{"$meta":"textScore"}}},{"$skip":offset},{"$limit":10}
-                            ],function(err,result){
+    filterOutlets: function filterOutlets(query,user_id,response){
+        async.waterfall([
+            function(callback){
+                async.parallel([
+                    function(innerCallback){
+                        Outlet.aggregate(query,function(err,result){
                                 if(!err && result){
                                     innerCallback(null,result)
                                 }else{
@@ -117,39 +61,42 @@ module.exports = {
                                 }
                             });
                         },
-                        function(innerCallback){
-                            OUTLET.findBookMarkOutlet(dataObject.user_id,function(result){
+                    function(innerCallback){
+                        BookMark.find({"user_id":user_id},{"outlet_id":1},function(err,result){
+                            if(!err){
                                 innerCallback(null,result);
-                            });
-                        }
-                    ],function(err,result){
-                        if(!err && result.length){
-                            callback(null,result);
-                        }else{
-                            utility.internalServerError(response);
-                        }
-                    });
-                },
-                function(result,callback){
-                    var outlets = result[0];
-                    var bookMarks = result[1];
-                    OUTLET.checkOutlet(outlets,bookMarks,function(result){
+                            }else{
+                                innerCallback(null);
+                            }
+                        }); 
+                    }
+                ],function(err,result){
+                    if(!err && result.length){
                         callback(null,result);
-                    });
-                }
-            ],function(err,result){
-                if(err){
-                    utility.internalServerError(response);
-                }else{
-                    utility.successDataRequest(result,response);
-                }
-            });
-        }else{
-            utility.badRequest(response);
-        }
-    },
-    filterSearch: function(dataObject,response){
-        if(validator.validateObjectId(dataObject.user_id) && (typeof(dataObject.search_string) == 'string') && (typeof(dataObject.category) == 'string') && validator.validateOffset(dataObject.offset)){
+                    }else{
+                        utility.internalServerError(response);
+                    }
+                });
+            },
+            function(result,callback){
+                var outlets = result[0];
+                var bookMarks = result[1];
+                FILTER.checkOutlet(outlets,bookMarks,function(result){
+                    callback(null,result);
+                });
+            }
+        ],function(err,result){
+            if(err){
+                utility.internalServerError(response);
+            }else{
+                utility.successDataRequest(result,response);
+            }
+        });
+    }   
+}
+module.exports = {
+    filterOutlets: function(dataObject,response){
+        if(validator.validateObjectId(dataObject.user_id) && (typeof(dataObject.category) == 'string') && validator.validateOffset(dataObject.offset)){
             let category = dataObject.category;
             let offset = parseInt(dataObject.offset);
             let query = new Array();
@@ -158,17 +105,16 @@ module.exports = {
                     locality:1,
                     cover_image:1,
                     name:1,
-                    star:1,
                     location:1,
-                    contacts:1
+                    contacts:1,
+                    outlet_type:1,
+                    outlet_accept:1,
+                    star:1,
+                    rating:1,
+                    cost_rating:1
                 }
             };
             let sort = {
-                $sort: {
-                    score:{
-                        $meta:"textScore"
-                    }
-                }
             };
             let skip = {
                 $skip: offset
@@ -178,10 +124,53 @@ module.exports = {
             }
             let match = {
                 $match:{
-                    $text:{
-                        $search:dataObject.search_string
-                    },
                 }
+            }
+            if(typeof(dataObject.sort) == 'string'){
+                switch(dataObject.sort){
+                    case 'cost_ratingHL':
+                            sort.$sort ={
+                                cost_rating:-1
+                            }
+                        break;
+                    case 'cost_ratingLH':
+                            sort.$sort ={
+                                cost_rating:1
+                            }
+                        break;
+                    case 'new_arrival':
+                            sort.$sort ={
+                                date:-1
+                            }
+                        break;
+                    default:
+                        sort.$sort ={
+                            star:-1
+                        }
+                }
+            }else{
+                sort.$sort ={
+                    star:-1
+                }
+            }
+            if(typeof(dataObject.category) == 'string'){
+                let category = dataObject.category;
+                switch(category){
+                    case 'book':
+                            match.$match.category = category;
+                        break;
+                    case 'cloth':
+                            match.$match.category = category;
+                        break;
+                    case 'consumer':
+                            match.$match.category = category;
+                        break;
+                    case 'watch':
+                            match.$match.category = category;
+                        break;
+                    default:
+                        utility.badRequest(response);
+                } 
             }
             if(typeof(dataObject.cost_rating) == 'object' && dataObject.cost_rating.length>0){
                 let cost_rating = [parseInt(dataObject.cost_rating[0]),parseInt(dataObject.cost_rating[1])]; 
@@ -246,22 +235,22 @@ module.exports = {
                 case 'book':
                         match.$match.category = category;
                         query.push(match,project,sort,skip,limit);
-                        OUTLET.searchOutlets(query,dataObject.user_id,response);
+                        FILTER.filterOutlets(query,dataObject.user_id,response);
                     break;
                 case 'cloth':
                         match.$match.category = category;
                         query.push(match,project,sort,skip,limit);
-                        OUTLET.searchOutlets(query,dataObject.user_id,response);                            
+                        FILTER.filterOutlets(query,dataObject.user_id,response);                            
                     break;
                 case 'consumer':
                         match.$match.category = category;
                         query.push(match,project,sort,skip,limit);
-                        OUTLET.searchOutlets(query,dataObject.user_id,response);                            
+                        FILTER.filterOutlets(query,dataObject.user_id,response);                            
                     break;
                 case 'watch':
                         match.$match.category = category;
                         query.push(match,project,sort,skip,limit);
-                        OUTLET.searchOutlets(query,dataObject.user_id,response);
+                        FILTER.filterOutlets(query,dataObject.user_id,response);
                     break;
                 default:
                     utility.badRequest(response);

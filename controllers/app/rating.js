@@ -219,8 +219,8 @@ module.exports = {
             let reviewKey = dataObject.outlet_id+":reviews"; 
             let offset = parseInt(dataObject.offset);
             utility.redisFindKey(reviewKey,function(result){
-                if(ratings = JSON.parse(result)){
-                    utility.successDataRequest(ratings.slice(offset,offset+10),response);
+                if(reviews = JSON.parse(result)){
+                    utility.successDataRequest(reviews.slice(offset,offset+10),response);
                 }else{
                     let Rating = new RatingModel();
                     let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);

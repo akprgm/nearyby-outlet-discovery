@@ -12,6 +12,7 @@ var user = require('../controllers/app/user');
 var getNear = require('../controllers/app/getNear');
 var outlet = require('../controllers/app/outlet');
 var search = require('../controllers/app/search');
+var filter = require('../controllers/app/filter');
 var router = Express.Router();
 router.post('/login',function(request,response){//route for login user
     auth.login(request.body,response);
@@ -19,7 +20,7 @@ router.post('/login',function(request,response){//route for login user
 router.post('/register',function(request,response){//route for registering user 
     auth.register(request.body,response);
 });
-router.use(function(request,response,next){
+/*router.use(function(request,response,next){
     if(validator.validateEmptyObject(request.body)){   
         if(validator.validateToken(request.body.access_token)){
             utility.verifyToken(request.body.access_token,'access',response,function(){
@@ -47,7 +48,7 @@ router.use(function(request,response,next){
     }else{
         utility.badRequest(response);
     }
-});
+});*/
 router.get('/userProfile',function(request,response){
     user.userProfile(request.query,response);
 });
@@ -122,6 +123,12 @@ router.get('/commentImage',function(request,response){//route for commenting on 
 router.get('/search',function(request,response){
     search.searchString(request.query,response);
 })
+router.get('/filterSearch',function(request,response){
+    search.filterSearch(request.query,response);
+});
+router.get('/filter',function(request,response){
+    filter.filterOutlets(request.query,response);
+});
 router.post('/getToken',function(request,response){//route for getting new token when old expires
     auth.getToken(request.body,response)
 });
