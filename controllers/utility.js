@@ -161,7 +161,7 @@ module.exports = {
             if(new_image_url){
                 value.outlet_info[0].cover_image = new_image_url;
             }else{
-                value.outlet_info[0].cover_image = "yoyo";
+                value.outlet_info[0].cover_image = env.app.gallery_url + "/s.jpg";
             }
         },function(err){
             if(err){

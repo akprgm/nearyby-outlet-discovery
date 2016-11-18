@@ -99,7 +99,7 @@ var OUTLET = {
         }); 
     }
 }
-module.exports = {
+module.exports = {  
     searchString: function(dataObject, response){
         if((validator.validateObjectId(dataObject.user_id)) && (typeof(dataObject.search_string) == 'string') && (validator.validateOffset(dataObject.offset))){
             async.waterfall([
@@ -108,7 +108,7 @@ module.exports = {
                         function(innerCallback){
                             let offset = parseInt(dataObject.offset);
                             Outlet.aggregate([
-                                {"$match":{"$text":{"$search":dataObject.search_string}}},{"$project":{"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"contacts":1}},{"$sort":{"score":{"$meta":"textScore"}}},{"$skip":offset},{"$limit":10}
+                                {"$match":{"$text":{"$search":dataObject.search_string}}},{"$project":{"locality":1,"cover_image":1,"name":1,"star":1,"cost_rating":1,"location":1,"contacts":1}},{"$sort":{"score":{"$meta":"textScore"}}},{"$skip":offset},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
                                     innerCallback(null,result)
@@ -159,6 +159,7 @@ module.exports = {
                     cover_image:1,
                     name:1,
                     star:1,
+                    cost_rating:1,
                     location:1,
                     contacts:1
                 }

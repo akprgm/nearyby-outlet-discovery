@@ -37,7 +37,7 @@ app.get('/manage/images',function(req,res){//managing images collection adding m
                             outletinfo.each(function(err,doc){
                                 if(doc){
                                     var id = doc._id;
-                                    var outlet_id = doc.outlet_id.toString();
+                                    var outlet_id = doc.outlet_id;
                                     var category = doc.category;
                                     //console.log("outlet_id "+ id+"   outlet_id "+outlet_id+"   category "+category);
                                     db.collection('images').update({"outlet_id":outlet_id,"category":category},{$set:{"outlet_id":id}});
@@ -58,7 +58,7 @@ app.get('/manage/images',function(req,res){//managing images collection adding m
                                 var userinfo = db.collection('users').find({"user_id":user_id},{"_id":1,"user_id":1});
                                 userinfo.each(function(err,doc){
                                     if(doc){
-                                        var user_id = doc.user_id.toString();
+                                        var user_id = doc.user_id;
                                         var id = doc._id;
                                         console.log("id: "+id+"  user_id:"+user_id);
                                         db.collection('images').update({"user_id":user_id},{$set:{"user_id":id}});
@@ -90,9 +90,8 @@ app.get('/manage/rating',function(req,res){//managing rating collection adding m
     var rating;
     async.series([
         function(callback){//getting rating data in this task
-            rating = db.collection('rating').find();
-            callback();
-            
+            rating = db.collection('ratings').find();
+            callback();  
         },
         function(callback){//performing manual references in this task
             rating.each(function(err,doc){
@@ -100,8 +99,37 @@ app.get('/manage/rating',function(req,res){//managing rating collection adding m
                     var user_id = doc.user_id;
                     var outlet_id = doc.outlet_id;
                     var category = doc.category;
-                    var reviews = doc.reviews;
-                    //console.log(doc.rating_id+"  "+reviews);
+                    async.parallel([
+                        function(callback){//changing outlet_id here
+                            var outletinfo = db.collection('outlets').find({"outlet_id":outlet_id,"category":category},{"_id":1,"outlet_id":1,"category":1});
+                            outletinfo.each(function(err,doc){
+                                if(doc){
+                                    var id = doc._id;
+                                    var outlet_id = doc.outlet_id;
+                                    var category = doc.category;
+                                    db.collection('ratings').update({"outlet_id":outlet_id,"category":category},{$set:{"outlet_id":id}});
+                                }
+                            });
+                            callback();
+                        },function(callback){//changing user_id here
+                            if(user_id!=0){
+                                var userinfo = db.collection('users').find({"user_id":user_id},{"_id":1,"user_id":1});
+                                userinfo.each(function(err,doc){
+                                    if(doc){
+                                        var user_id = doc.user_id;
+                                        var id = doc._id;
+                                        db.collection('ratings').update({"user_id":user_id},{$set:{"user_id":id}});
+                                    }
+                                });
+                            }
+                            callback();
+                        }
+                    ],function(err,result){
+                        if(err){
+                            console.log("error caught during changing userid and outletids "+err);
+                        }
+                    });
+                    /*var reviews = doc.reviews;
                     var review_count = reviews.length;
                     async.series([
                         function(callback1){//user_id and outlet_id manipulation 
@@ -252,7 +280,128 @@ app.get('/manage/rating',function(req,res){//managing rating collection adding m
                         if(err){
                             console.log("error caught during getting rating data or 1s async call" +err);
                         }
-                    })
+                    })*/
+                }
+            });
+            callback();
+        }
+    ],function(err,result){ 
+        if(err){
+            console.log("error caught during getng rating data or 1s async call" +err);
+        }
+    });
+    res.send("rating managed ");    
+});
+app.get('/manage/review',function(req,res){//managing rating collection adding manual references
+    var review;
+    async.series([
+        function(callback){//getting rating data in this task
+            review = db.collection('reviews').find();
+            callback();  
+        },
+        function(callback){//performing manual references in this task
+            review.each(function(err,reviewDoc){
+                if(reviewDoc){      
+                    async.parallel([
+                        function(callback3){//changing outlet_id here
+                            var outletinfo = db.collection('outlets').find({"outlet_id":reviewDoc.outlet_id,"category":reviewDoc.category},{"_id":1,"outlet_id":1,"category":1});
+                            outletinfo.each(function(err,doc){
+                                if(doc){
+                                    var id = doc._id;
+                                    var outlet_id = doc.outlet_id;
+                                    var category = doc.category;
+                                    db.collection('reviews').update({"outlet_id":outlet_id,"category":category},{$set:{"outlet_id":id}});
+                                }
+                            });
+                            callback3();
+                        },
+                        function(callback3){//changing user_id here
+                            if(reviewDoc.user_id!=0){
+                                var userinfo = db.collection('users').find({"user_id":reviewDoc.user_id},{"_id":1,"user_id":1});
+                                userinfo.each(function(err,doc){
+                                    if(doc){
+                                        var user_id = doc.user_id;
+                                        var id = doc._id;
+                                        db.collection('reviews').update({"user_id":user_id},{$set:{"user_id":id}});
+                                    }
+                                });
+                            }
+                            callback3();
+                        },
+                        function(callback3){//manipulating reviewLikes inside review
+                            var likes = reviewDoc.likes;
+                            var likesCount = likes.length;
+                            var likeIds = new Array();
+                            for(let i=0;i<likesCount;i++){
+                                var like_id = likes[i];
+                                var newDoc = db.collection('reviewLikes').find({"like_id":like_id},{"_id":1});
+                                newDoc.each(function(err,doc){
+                                    if(doc){
+                                        likeIds.push(doc._id);
+                                    }
+                                });
+                            }
+                            setTimeout(function() {
+                                db.collection('reviews').update({"review_id":reviewDoc.review_id},{$pull:{"likes":{$in:likes}}});
+                                db.collection('reviews').update({"review_id":reviewDoc.review_id},{$push:{"likes":{$each:likeIds}}});
+                                callback3();    
+                            }, 10000);
+                            
+                        },
+                        function(callback3){//manipulating reviewComments inside review
+                            var comments = reviewDoc.comments;
+                            var commentsCount = comments.length;
+                            var commentIds = new Array();
+                            for(let i=0;i<commentsCount;i++){
+                                var comment_id = comments[i];
+                                var newDoc = db.collection('reviewComments').find({"review_id":reviewDoc.review_id},{"_id":1});
+                                newDoc.each(function(err,doc){
+                                    if(doc){
+                                        commentIds.push(doc._id);
+                                    }
+                                });
+                            }
+                            setTimeout(function() {
+                                db.collection('reviews').update({"review_id":reviewDoc.review_id},{$pull:{"comments":{$in:comments}}});
+                                db.collection('reviews').update({"review_id":reviewDoc.review_id},{$push:{"comments":{$each:commentIds}}});
+                                callback3();    
+                            }, 10000);
+                        },
+                        function(callback3){//manipulating image id inside review
+                            var images = reviewDoc.images;
+                            var imageCount = images.length;
+                            var imageIds = new Array();
+                            async.series([
+                                function(callback4){
+                                    for(let j=0;j<imageCount;j++){
+                                        var image_id = images[j];
+                                        var newDoc = db.collection('images').find({"image_id":image_id},{"_id":1});
+                                        newDoc.each(function(err,doc){
+                                            if(doc){
+                                                var id = doc._id;    
+                                                imageIds.push(id);              
+                                            }
+                                        })  
+                                    }
+                                    setTimeout(callback4,10000);
+                                },
+                                function(callback4){
+                                    db.collection('reviews').update({"review_id":reviewDoc.review_id},{$pull:{"images":{$in:images}}});
+                                    db.collection('reviews').update({"review_id":reviewDoc.review_id},{$push:{"images":{$each:imageIds}}});
+                                    callback4();
+                                }
+                                ],function(err,result){
+                                    if(err){
+                                        console.log("error in image")
+                                    }
+                            });
+                            callback3();
+                        }
+                    ],function(err,result){
+                        if(err){
+                            console.log("error caught during changing userid and outletids "+err);
+                        }
+                    });
                 }
             });
             callback();
@@ -704,8 +853,8 @@ app.get('/manage/ids',function(req,res){
     db.collection('imageComments').updateMany({},{$unset:{"comment_id":1}});//removing old ids from imageComments collection
     db.collection('imageLikes').updateMany({},{$unset:{"like_id":1}});//removing old ids from imageLikes collection    
     db.collection('images').updateMany({},{$unset:{"image_id":1}});//removing old ids from images collection    
-    db.collection('rating').updateMany({},{$unset:{"rating_id":1}});//removing old ids from rating collection    
-    db.collection('rating').updateMany({"reviews.review_id":{$exists:true}},{$unset:{"reviews.$.review_id":1}});
+    //db.collection('rating').updateMany({},{$unset:{"rating_id":1}});//removing old ids from rating collection    
+    //db.collection('rating').updateMany({"reviews.review_id":{$exists:true}},{$unset:{"reviews.$.review_id":1}});
     db.collection('reviewComments').updateMany({},{$unset:{"comment_id":1}});//removing old ids from imageComments collection
     db.collection('reviewLikes').updateMany({},{$unset:{"like_id":1}});//removing old ids from imageLikes collection    
     res.send("id management done");

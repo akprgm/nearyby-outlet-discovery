@@ -52,10 +52,10 @@ var USER = {
 }
 module.exports = {
     userProfile: function userProfile(dataObject, response){
-        if(validator.validateObjectId(dataObject.user_id)){
+        if(validator.validateObjectId(dataObject.user_id) && validator.validateOffset(dataObject.offset)){
             async.parallel([
                 function(callback){//getting user reviews
-                    var reviewUrl = env.app.url+"getUserReviews?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id;
+                    var reviewUrl = env.app.url+"getUserReviews?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id+"&offset="+dataObject.offset;
                     request(reviewUrl,function(err,res,body){
                         if(!err && res.statusCode ==200){
                             let data = JSON.parse(body);
@@ -63,12 +63,12 @@ module.exports = {
                         }else if(!err && res.statusCode ==204){
                             callback(null, new Array());
                         }else{
-                            callback(err);
+                            callback(null);
                         }
                     });
                 },
                 function(callback){//getting user ratings
-                    var ratingUrl = env.app.url+"getUserRatings?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id;
+                    var ratingUrl = env.app.url+"getUserRatings?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id+"&offset="+dataObject.offset;;
                     request(ratingUrl,function(err,res,body){
                         if(!err && res.statusCode ==200){
                             let data = JSON.parse(body);
@@ -76,12 +76,12 @@ module.exports = {
                         }else if(!err && res.statusCode ==204){
                             callback(null, new Array());
                         }else{
-                            callback(err);
+                            callback(null);
                         }
                     });
                 },
                 function(callback){//getting user checkins
-                    var checkInUrl = env.app.url+"getCheckIns?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id;
+                    var checkInUrl = env.app.url+"getCheckIns?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id+"&offset="+dataObject.offset;;
                     request(checkInUrl,function(err,res,body){
                         if(!err && res.statusCode ==200){
                             let data = JSON.parse(body);
@@ -89,12 +89,23 @@ module.exports = {
                         }else if(!err && res.statusCode ==204){
                             callback(null, new Array());
                         }else{
-                            callback(err);
+                            callback(null);
                         }
                     });
                 },
-                function(callback){
+                function(callback){//getting user pics
                     callback(null,new Array());
+                },
+                function(callback){//getting basic user info
+                    var userInfoUrl = env.app.url+"userInfo?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id;
+                    request(userInfoUrl,function(err,res,body){
+                        if(!err && res.statusCode == 200){
+                            let data = JSON.parse(body);
+                            callback(null,data.message);                    
+                        }else{
+                            callback(null);
+                        }
+                    }); 
                 }
             ],function(err, results){
                  if(!err && results.length>0){
@@ -103,7 +114,8 @@ module.exports = {
                         reviews: results[0],
                         ratings: results[1],
                         checkIns: results[2],
-                        photos: results[3]
+                        photos: results[3],
+                        user_info: results[4]
                     }
                     response.send(jsonObject);
                 }else{

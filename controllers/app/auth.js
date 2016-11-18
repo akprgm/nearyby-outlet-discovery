@@ -101,7 +101,7 @@ module.exports = {
         }
     },
     register: function register(dataObject,response){//method for registering new user);
-        if(!validator.validateEmptyObject(dataObject)){//validating for valid object is recieved by client or not
+        if(validator.validateEmptyObject(dataObject)){//validating for valid object is recieved by client or not
             if(dataObject.auth_type && dataObject.name){//auth type and name of user is must to proceed further in registration
                 let phone = new Array();
                 if(dataObject.phone){//pushing contact info in phone array if any 
@@ -215,6 +215,7 @@ module.exports = {
                 utility.badRequest(response);            
             }          
         }else{
+            console.log(validator.validateEmptyObject(dataObject));
             utility.badRequest(response);
         }
     },
@@ -240,7 +241,7 @@ module.exports = {
                                 let access_token = jwt.sign({id:user.email},env.secretKey,{expiresIn: '1d'});//access token for user                                        
                                 utility.successDataRequest(access_token,response);                            
                             }else{
-                                utility.successDataRequest(access_token,response);                                                            
+                                utility.badRequest(response);                                                            
                             }     
                         });                            
                     }

@@ -2,7 +2,7 @@
   "name": "faagio",
   "version": "1.0.0",
   "description": "faagio app in node.js",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
     "test": "start"
   },

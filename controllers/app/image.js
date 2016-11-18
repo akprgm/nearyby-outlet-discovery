@@ -34,10 +34,12 @@ var IMAGE = {
             }
         }
         callback();
-    }
+    }   
 }
 module.exports = {
     uploadImage: function uploadImage(){
+       /* let(__dir)
+        gm*/
     },
     commentImage: function commentImage(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.image_id) && typeof(dataObject.comment) == 'string'){
@@ -86,6 +88,7 @@ module.exports = {
         }
     },
     getUserPics: function getUserPics(dataObject, response){    
+
     },
     getOutletPics: function getOutletPics(dataObject, response){       
     }

@@ -60,6 +60,13 @@ router.get('/likeProfile',function(request,response){
 });
 router.get('/followOutlet',function(request,response){
     user.followOutlet(request.query,response);
+});
+router.get('/userInfo',function(request,response){
+    utility.userInfo(request.query.user_id,function(user){
+        utility.userBasicData(user,function(userInfo){
+            utility.successDataRequest(userInfo,response);        
+        });
+    });
 });  
 router.get('/getUserPics',function(request,response){
 });
