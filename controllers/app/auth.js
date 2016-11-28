@@ -2,12 +2,10 @@ var mongoose = require('mongoose');
 var redis = require('redis');
 var jwt = require('jsonwebtoken');
 var bcrypt = require('bcrypt');
-var models = require('../../models/appModel');
 var validator = require('../validator');
 var env = require('../../env/development');
 var utility = require('../utility');
-var ObjectId = mongoose.Types.ObjectId;
-var userModel = models.user;
+var UserModel = mongoose.model('user');;
 module.exports = {
     login: function login(dataObject,response){//method for login functionality in our mobile app
         let auth_type = dataObject.auth_type;
@@ -30,8 +28,7 @@ module.exports = {
                                     });
                                 });
                             }else{
-                                var User = new userModel();//new user model
-                                User.findOne({email:dataObject.email,auth_type:"faagio"},function(err,user){
+                                UserModel.findOne({email:dataObject.email,auth_type:"faagio"},function(err,user){
                                     if(!err && user){
                                         bcrypt.compare(dataObject.password, user.password, function(err, status) {//checking for password
                                             if(status){
@@ -72,8 +69,7 @@ module.exports = {
                                         }
                                     });
                                 }else{
-                                    var NewUser = new userModel();//new user model
-                                    NewUser.findOne({social_id:dataObject.social_id,auth_type:dataObject.auth_type},function(err,result){
+                                    UserModel.findOne({social_id:dataObject.social_id,auth_type:dataObject.auth_type},function(err,result){
                                         if(err){
                                             utility.internalServerError(response);
                                         }else{
@@ -140,15 +136,14 @@ module.exports = {
                                         user.status = false;//verify email before activating user account
                                         user.password = hash;//hash password 
                                         user.refresh_token = jwt.sign({id:user.email,name:user.name},env.secretKey);//refresh token for user
-                                        let NewUser = new userModel();//new user model
-                                        NewUser.findOne({email:user.email,auth_type:"faagio"},function(err,result){//checking whether user with this social id already exist or not
+                                        UserModel.findOne({email:user.email,auth_type:"faagio"},function(err,result){//checking whether user with this social id already exist or not
                                             if(err){
                                                 utility.internalServerError(response)
                                             }else{//no error in query operation 
                                                 if(result){//user found with this social id 
                                                     utility.conflictRequest(response);
                                                 }else{//inserting new user
-                                                    let newUser = new NewUser(user);//new instance of user model
+                                                    let newUser = new UserModel(user);//new instance of user model
                                                     newUser.save(function(err,result){//saving new user in our mongo store
                                                         if(err){
                                                             utility.internalServerError(response);//sending internal server error response to client
@@ -177,15 +172,14 @@ module.exports = {
                                 if(validator.validateSocialId(dataObject.social_id)){//checking whether social id is valid or not
                                     user.social_id = dataObject.social_id;//google or facebook account id
                                     user.refresh_token = jwt.sign({id:user.social_id,name:user.name},env.secretKey);//refresh token for user
-                                    var NewUser = new userModel();//new user model
-                                    NewUser.findOne({social_id:user.social_id},function(err,result){//checking whether user with this social id already exist or not
+                                    UserModel.findOne({social_id:user.social_id},function(err,result){//checking whether user with this social id already exist or not
                                         if(err){
                                             utility.internalServerError(response)
                                         }else{//no error in query operation 
                                             if(result){//user found with this social id 
                                                 utility.conflictRequest(response);
                                             }else{//inserting new user
-                                                var newUser = new NewUser(user);
+                                                var newUser = new UserModel(user);
                                                 newUser.save(function(err,result){//saving new user in our mongo store
                                                     if(err){
                                                         utility.internalServerError(response);//sending internal server error response to client
@@ -215,7 +209,7 @@ module.exports = {
                 utility.badRequest(response);            
             }          
         }else{
-            console.log(validator.validateEmptyObject(dataObject));
+            //utility.internalServerError(response);
             utility.badRequest(response);
         }
     },
@@ -232,9 +226,7 @@ module.exports = {
                             utility.unauthorizedRequest(response);
                         }                     
                     }else{
-                        let UserModel = models.user;
-                        let User = new userModel();
-                        User.findOne({_id:dataObject.user_id},function(err,user){
+                        UserModel.findOne({_id:dataObject.user_id},function(err,user){
                             if(!err && user){
                                 utility.redisSaveKey(user._id,JSON.stringify(user));//saving user data in redis cache store
                                 utility.redisSaveKey(user.email,(user._id).toString());//saveing refrence to user data with social id key

@@ -13,6 +13,7 @@ var getNear = require('../controllers/app/getNear');
 var outlet = require('../controllers/app/outlet');
 var search = require('../controllers/app/search');
 var filter = require('../controllers/app/filter');
+var newsFeed = require('../controllers/app/newsFeed');
 var router = Express.Router();
 router.post('/login',function(request,response){//route for login user
     auth.login(request.body,response);
@@ -68,8 +69,6 @@ router.get('/userInfo',function(request,response){
         });
     });
 });  
-router.get('/getUserPics',function(request,response){
-});
 router.get('/getNearOutlets',function(request,response){
     getNear.getNearOutlets(request.query,response);
 });
@@ -106,6 +105,12 @@ router.get('/getUserReviews',function(request,response){//route for getting all 
 router.get('/getOutletReviews',function(request,response){//route for getting all outlet reviews
     rating.getOutletReviews(request.query, response);
 });
+router.get('/getUserPics',function(request,response){
+    image.getUserPics(request.query,response);
+});
+router.get('/getOutletPics',function(request,response){
+    image.getOutletPics(request.query,response);
+});
 router.get('/bookMarkOutlet',function(request,response){//route for bookmarking a outlet 
     bookMark.bookMarkOutlet(request.query,response);
 });
@@ -115,11 +120,11 @@ router.get('/getUserBookMarks',function(request,response){//route for getting us
 router.get('/checkInOutlet',function(request,response){//route for checkin outlet
     checkIn.checkInOutlet(request.query ,response);
 });
-router.get('/getCheckIns',function(request,response){//route for getting all userCheckins
-    checkIn.getCheckIns(request.query,response);
+router.get('/getUserCheckIns',function(request,response){//route for getting all userCheckins
+    checkIn.getUserCheckIns(request.query,response);
 });
-router.get('/uploadPics',function(request,response){//route for getting all userCheckins
-    image.uploadPics(request.query,response);
+router.post('/uploadImages',function(request,response){//route for getting all userCheckins
+    image.uploadImage(request.body,response);
 });
 router.get('/likeImage',function(request,response){//route for liking review
     image.likeImage(request.query,response);
@@ -135,6 +140,9 @@ router.get('/filterSearch',function(request,response){
 });
 router.get('/filter',function(request,response){
     filter.filterOutlets(request.query,response);
+});
+router.get('/newsFeed',function(request,response){
+    newsFeed.newsFeed(request.query,response);
 });
 router.post('/getToken',function(request,response){//route for getting new token when old expires
     auth.getToken(request.body,response)

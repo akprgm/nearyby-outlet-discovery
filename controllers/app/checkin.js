@@ -1,11 +1,9 @@
 var mongoose = require('mongoose');
 var redis = require('redis');
 var async = require('async');
-var models = require('../../models/appModel');
 var validator = require('../validator');
 var utility = require('../utility');
-var CheckInModel = models.checkIn;
-var CheckIn = new CheckInModel();
+var CheckInModel = mongoose.model('checkIn');
 module.exports = {
     checkInOutlet: function checkIn(dataObject,response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id) && validator.validateCategory(dataObject.category)){
@@ -28,11 +26,11 @@ module.exports = {
                 date: (new Date).getTime(),
                 category: dataObject.category
             }
-            let checkIn = new CheckIn(obj);
+            let checkIn = new CheckInModel(obj);
             checkIn.save(function(err,result){ 
                 if(!err && result){
-                    CheckIn.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
-                        if(!err && result){
+                    CheckInModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                        if(!err && result.length>0){
                             utility.outletDefaultCoverImage(result);
                             utility.redisSaveKey(checkInKey,JSON.stringify(result));
                         }else{}
@@ -46,26 +44,26 @@ module.exports = {
             utility.badRequest(response);
         }
     },
-    getCheckIns: function getCheckIns(dataObject,response){
+    getUserCheckIns: function getCheckIns(dataObject,response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateOffset(dataObject.offset)){
-                let checkInKey = dataObject.user_id+":checkIn";
-                let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-                let offset = parseInt(dataObject.offset);            
-                utility.redisFindKey(checkInKey,function(checkIns){
-                    if(checkIns = JSON.parse(checkIns)){//looking in redis cache store
-                        utility.successDataRequest(checkIns.slice(offset,offset+10),response);//sending success response to client  
-                    }else{//looking in mongodbs
-                        CheckIn.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
-                            if(!err && result.length > 0){
-                                utility.outletDefaultCoverImage(result);
-                                utility.redisSaveKey(checkInKey,JSON.stringify(result));
-                                utility.successDataRequest(result.slice(offset,offset+10),response);//sending success response to client                              
-                            }else{
-                                utility.failureRequest(response);
-                            }
-                        });
-                    }
-                });
+            let checkInKey = dataObject.user_id+":checkIn";
+            let user_id = mongoose.Types.ObjectId(dataObject.user_id);
+            let offset = parseInt(dataObject.offset);            
+            utility.redisFindKey(checkInKey,function(checkIns){
+                if(checkIns = JSON.parse(checkIns)){//looking in redis cache store
+                    utility.successDataRequest(checkIns.slice(offset,offset+10),response);//sending success response to client  
+                }else{//looking in mongodbs
+                    CheckInModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                        if(!err && result.length > 0){
+                            utility.outletDefaultCoverImage(result);
+                            utility.redisSaveKey(checkInKey,JSON.stringify(result));
+                            utility.successDataRequest(result.slice(offset,offset+10),response);//sending success response to client                              
+                        }else{
+                            utility.failureRequest(response);
+                        }
+                    });
+                }
+            });
         }else{
             utility.badRequest(response);
         }

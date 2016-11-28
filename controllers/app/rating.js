@@ -1,77 +1,160 @@
 var mongoose = require('mongoose');
 var redis = require('redis');
+var async = require('async');
 var fs = require('fs');
 var gm = require('gm');
 var request = require('request');
-var models = require('../../models/appModel');
 var validator = require('../validator');
 var utility = require('../utility');
 var env = require('../../env/development');
-var RatingModel = models.rating;
-var Rating = new RatingModel();
-var ReviewCommentModel = models.reviewComment;
-var ReviewComment = new ReviewCommentModel();
-var ReviewLikeModel = models.reviewLike;
-var ReviewLike = new ReviewLikeModel();
-let RATING = {
-    saveImage: function saveImage(imageArray,user_id,callback){
-        let length = imageArray.length;
-        for(let i=0; i< length; i++){
-            var matches = imageArray[i].match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-            var imageBuff = new Buffer(imageArray[i], 'base64');
-            gm(imageBuff).identify(function(err,result){
-                console.log(result);
-            })
-            switch(matches[1]){
-                case 'image/jpeg':
-                        var imageBuff = new Buffer(imageArray[i], 'base64');
-                        var imageName = user_id+"review("+i+").jpeg";
-                        fs.writeFile(imageName, imageBuff);
-                    break;
-                case 'image/png':
-                        var imageBuff = new Buffer(imageArray[i], 'base64');
-                        var imageName = user_id+"review("+i+").png";
-                        fs.writeFile(imageName, imageBuff);
-                    break;
-            }
-        }
-        callback();
-    }
-}
+var RatingModel = mongoose.model('rating');
+var ReviewModel = mongoose.model('review');
+var ReviewCommentModel = mongoose.model('reviewComment');
+var ReviewLikeModel = mongoose.model('reviewLike');
 module.exports = {
     reviewOutlet: function reviewOutlet(dataObject, response){//rate and review outlet
-        if(typeof(dataObject.star) == 'number' && validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id)){
+        if(typeof(dataObject.star) == 'number' && validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id) && validator.validateCategory(dataObject.category)){
             let obj = {
                 user_id: dataObject.user_id,
                 outlet_id: dataObject.outlet_id,
                 star: dataObject.star,
                 date: (new Date).getTime(),
-                category: 'cloth'
-            }
-            if(typeof(dataObject.images) == 'object' && dataObject.images.length>0){//checking for images if uploaded during reivew
-                RATING.saveImage(dataObject.images,dataObject.user_id,function(){
-                    response.send("images comming");       
-                });
+                category: dataObject.category
             }
             if(typeof(dataObject.review) == 'string' && dataObject.review !=""){//checking for if its only rating or review
-                obj.review = dataObject.review;
-                let rating = new Rating(obj);
-                rating.save(function(err,result){
-                    if(!err && result){//find user Reviews and store them in redis cache
-                        utility.outletDefaultCoverImage(result);
-                        utility.saveUserReviews(dataObject);
-                        utility.successRequest(response);
-                    }else{
-                        utility.internalServerError(response);
-                    }
-                });
+                if(typeof(dataObject.photos) == 'object' && dataObject.photos.length>0){//checking for images if uploaded during reivew
+                    obj.images = new Array();
+                    async.each(dataObject.photos,function(photo,photoCallBack){
+                        let dateTime = (new Date).getTime();
+                        let imageName = obj.user_id+"_"+obj.category+"_"+dateTime+".jpg";
+                        let imageObject = {
+                            user_id: dataObject.user_id,
+                            outlet_id: dataObject.outlet_id,
+                            category: dataObject.category,
+                            image: imageName,
+                            uploaded_by: "user",
+                            date: dateTime
+                        }
+                        utility.saveImage(imageObject,photo,function(bool){
+                            if(bool){
+                                obj.images.push(bool);
+                                photoCallBack(null);
+                            }else{
+                                photoCallBack(false)
+                            }
+                        });
+                    },function(err){
+                        if(!err){//rating outlet with images
+                            obj.review = dataObject.review;                            
+                            let rating = new RatingModel(obj);
+                            let review = new ReviewModel(obj);
+                            async.parallel([
+                                function(callback){
+                                    RatingModel.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{},{"limit":1} ,function(err,result){//only rating so here we will try to find whether already rated or not
+                                        if(!err && result.length>0){
+                                            let date = (new Date).getTime();
+                                            RatingModel.update({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"$set":{"star":dataObject.star,"date":date}},function(err,result){//already rated so here updating user rating for this outlet
+                                                if(!err && result.nModified>0){
+                                                    utility.saveUserRating(dataObject);
+                                                    callback(null,true);
+                                                }else{
+                                                    callback(null,false);
+                                                }       
+                                            });                        
+                                        }else{//inserting new rating 
+                                            let rating = new RatingModel(obj);
+                                            rating.save(function(err,result){
+                                                if(!err && result){
+                                                    utility.saveUserRating(dataObject);
+                                                    callback(null,true);
+                                                }else{
+                                                    callback(null,false);
+                                                }
+                                            });     
+                                        }
+                                    });
+                                },
+                                function(callback){
+                                    review.save(function(err,result){
+                                        if(!err && result){//find user Reviews and store them in redis cache
+                                            utility.saveUserReviews(dataObject);
+                                            callback(null,true);
+                                        }else{
+                                            callback(null,false);
+                                        }
+                                    });
+                                } 
+                            ],function(err,result){
+                                if(!err && result.length>0){
+                                    if(result[0] && result[1]){
+                                        utility.successRequest(response);
+                                    }else{
+                                        utility.internalServerError(response);
+                                    }
+                                }else{
+                                    utility.internalServerError(response);
+                                }
+                            });
+                        }
+                    });
+                }else{
+                    obj.review = dataObject.review;                    
+                    let rating = new RatingModel(obj);
+                    let review = new ReviewModel(obj);
+                    async.parallel([
+                        function(callback){
+                            RatingModel.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{},{"limit":1} ,function(err,result){//only rating so here we will try to find whether already rated or not
+                                if(!err && result.length>0){
+                                    let date = (new Date).getTime();
+                                    RatingModel.update({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"$set":{"star":dataObject.star,"date":date}},function(err,result){//already rated so here updating user rating for this outlet
+                                        if(!err && result.nModified>0){
+                                            utility.saveUserRating(dataObject);
+                                            callback(null,true);
+                                        }else{
+                                            callback(null,false);
+                                        }       
+                                    });                        
+                                }else{//inserting new rating 
+                                    let rating = new RatingModel(obj);
+                                    rating.save(function(err,result){
+                                        if(!err && result){
+                                            utility.saveUserRating(dataObject);
+                                            callback(null,true);
+                                        }else{
+                                            callback(null,false);
+                                        }
+                                    });     
+                                }
+                            });
+                        },
+                        function(callback){
+                            review.save(function(err,result){
+                                if(!err && result){//find user Reviews and store them in redis cache
+                                    utility.saveUserReviews(dataObject);
+                                    callback(null,true);
+                                }else{
+                                    callback(null,false);
+                                }
+                            });
+                        } 
+                    ],function(err,result){
+                        if(!err && result.length>0){
+                            if(result[0] && result[1]){
+                                utility.successRequest(response);
+                            }else{
+                                utility.internalServerError(response);
+                            }
+                        }else{
+                            utility.internalServerError(response);
+                        }
+                    });
+                }
             }else{
-                Rating.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id,"review":""},{},{"limit":1} ,function(err,result){//only rating so here we will try to find whether already rated or not
+                RatingModel.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{},{"limit":1} ,function(err,result){//only rating so here we will try to find whether already rated or not
                     if(!err && result.length>0){
                         let date = (new Date).getTime();
-                        Rating.update({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id,"review":""},{"$set":{"star":dataObject.star,"date":date}},function(err,result){//already rated so here updating user rating for this outlet
+                        RatingModel.update({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"$set":{"star":dataObject.star,"date":date}},function(err,result){//already rated so here updating user rating for this outlet
                             if(!err && result.nModified>0){
-                                utility.outletDefaultCoverImage(result);
                                 utility.saveUserRating(dataObject);
                                 utility.successRequest(response);
                             }else{
@@ -79,10 +162,9 @@ module.exports = {
                             }       
                         });                        
                     }else{//inserting new rating 
-                        let rating = new Rating(obj);
+                        let rating = new RatingModel(obj);
                         rating.save(function(err,result){
                             if(!err && result){
-                                utility.outletDefaultCoverImage(result);
                                 utility.saveUserRating(dataObject);
                                 utility.successRequest(response);
                             }else{
@@ -98,9 +180,9 @@ module.exports = {
     },
     reviewLike: function reviewLike(dataObject, response){//function for liking a review
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.review_id)){
-            Rating.update({"_id":dataObject.review_id},{"$pull":{"likes":dataObject.user_id}},function(err,result){
+            RatingModel.update({"_id":dataObject.review_id},{"$pull":{"likes":dataObject.user_id}},function(err,result){
                 if(!err && result.nModified>0){//already liked by user
-                    ReviewLike.remove({"user_id":dataObject.user_id,"review_id":dataObject.review_id},function(err){
+                    ReviewLikeModel.remove({"user_id":dataObject.user_id,"review_id":dataObject.review_id},function(err){
                         if(!err){
                             utility.successRequest(response);
                         }else{
@@ -108,7 +190,7 @@ module.exports = {
                         }
                     });
                 }else{//liking review
-                    Rating.update({"_id":dataObject.review_id},{"$push":{"likes":dataObject.user_id}},function(err,result){
+                    RatingModel.update({"_id":dataObject.review_id},{"$push":{"likes":dataObject.user_id}},function(err,result){
                         if(!err && result.nModified>0){
                             let obj = {
                                 user_id: dataObject.user_id,
@@ -116,7 +198,7 @@ module.exports = {
                                 like: true,
                                 date: (new Date).getTime()
                             }
-                            let like = new ReviewLike(obj);
+                            let like = new ReviewLikeModel(obj);
                             like.save(function(err,result){
                                 if(!err && result){
                                     utility.successRequest(response);                            
@@ -142,10 +224,10 @@ module.exports = {
                 comment: dataObject.comment,
                 date: (new Date).getTime()
             }
-            let comment = new ReviewComment(obj);
+            let comment = new ReviewCommentModel(obj);
             comment.save(function(err,result){
                 if(!err && result){
-                    Rating.update({"reviews._id":dataObject.review_id},{"$push":{"reviews.$.comments":result._id}},function(err,result){
+                    RatingModel.update({"reviews._id":dataObject.review_id},{"$push":{"reviews.$.comments":result._id}},function(err,result){
                         if(!err && result.n>0){
                             utility.successRequest(response);
                         }else{
@@ -168,9 +250,8 @@ module.exports = {
                 if(ratings = JSON.parse(result)){
                     utility.successDataRequest(ratings.slice(offset,offset+10),response);
                 }else{
-                    let Rating = new RatingModel();
                     let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-                    Rating.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"review":{"$eq":""},"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                    RatingModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"review":{"$eq":""},"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(err){
                             utility.internalServerError(response);
                         }else if(result.length>0){
@@ -195,9 +276,8 @@ module.exports = {
                 if(reviews = JSON.parse(result)){
                     utility.successDataRequest(reviews.slice(offset,offset+10),response);
                 }else{
-                    let Rating = new RatingModel();
                     let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-                    Rating.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"review":{"$ne":""},"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                    ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"review":{"$ne":""},"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(err){
                             utility.internalServerError(response);
                         }else if(result.length>0){
@@ -222,9 +302,8 @@ module.exports = {
                 if(reviews = JSON.parse(result)){
                     utility.successDataRequest(reviews.slice(offset,offset+10),response);
                 }else{
-                    let Rating = new RatingModel();
                     let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
-                    Rating.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"outlet_id":outlet_id,"review":{"$ne":""},"outlet_info":{"$ne":[]},"user_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.image":1}},{"$sort":{"date":-1}}],function(err,result){
+                    ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"outlet_id":outlet_id,"review":{"$ne":""},"outlet_info":{"$ne":[]},"user_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.image":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(err){
                             utility.internalServerError(response);
                         }else if(result.length>0){

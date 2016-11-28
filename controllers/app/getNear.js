@@ -3,13 +3,10 @@ var redis = require('redis');
 var async = require('async');
 var request = require('request');
 var env = require('../../env/development');
-var models = require('../../models/appModel');
 var validator = require('../validator');
 var utility = require('../utility');
-var OutletModel = models.outlet;
-var Outlet = new OutletModel;
-var BookMarkModel = models.bookMark;
-var BookMark = new BookMarkModel;
+var OutletModel = mongoose.model('outlet');
+var BookMarkModel = mongoose.model('bookMark');;
 var OUTLET = {
     checkOutlet: function checkOutlet(outlets,bookMarks,checkCallback){
         async.map(outlets,function(value,valueCallBack){
@@ -17,29 +14,30 @@ var OUTLET = {
             let category = value.category;
             let image_path = env.app.gallery_url+category+"/cover_images/"+cover_image;
             let image_access_path = env.app.gallery_url+category+"/cover_images/"+cover_image;            
-            let new_image_url = utility.checkImage(image_path,image_access_path);
-            if(new_image_url){
-                value.cover_image = new_image_url;
-            }else{
-                value.cover_image = env.app.gallery_url+"/s.jpg";
-            }
-            if(!bookMarks){
-                value.bookMark = false;
-            }
-            async.map(bookMarks,function(bookmark,bookMarkCallBack){
-                let flag = false;
-                if(JSON.stringify(bookmark.outlet_id) === JSON.stringify(value._id)){
-                    value.bookMark = true;
-                    flag = true;
-                    bookMarkCallBack(null);  
+            utility.checkImage(image_path,image_access_path,function(new_image_url){
+                if(new_image_url){
+                    value.cover_image = new_image_url;
                 }else{
+                    value.cover_image = env.app.gallery_url+"/s.jpg";
+                }
+                if(!bookMarks.length){
                     value.bookMark = false;
                 }
-                if(!flag){
-                    bookMarkCallBack(null);                    
-                }
+                async.map(bookMarks,function(bookmark,bookMarkCallBack){
+                    let flag = false;
+                    if(JSON.stringify(bookmark.outlet_id) === JSON.stringify(value._id)){
+                        value.bookMark = true;
+                        flag = true;
+                        bookMarkCallBack(null);  
+                    }else{
+                        value.bookMark = false;
+                    }
+                    if(!flag){
+                        bookMarkCallBack(null);                    
+                    }
+                });
+                valueCallBack(null,value);
             });
-            valueCallBack(null,value);
         },function(err,result){
             if(err){
                 checkCallback(null);
@@ -49,7 +47,7 @@ var OUTLET = {
         });
     },
     findBookMarkOutlet: function findBookMarkOutlet(user_id,bookMarkCallBack){
-        BookMark.find({"user_id":user_id},{"outlet_id":1},function(err,result){
+        BookMarkModel.find({"user_id":user_id},{"outlet_id":1},function(err,result){
             if(!err){
                 bookMarkCallBack(result);
             }else{
@@ -134,7 +132,7 @@ module.exports = {
                         function(innerCallback){
                             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
                             let minDistance = parseFloat(dataObject.minDistance)*1000+1;
-                            Outlet.aggregate([
+                            OutletModel.aggregate([
                                 {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"cloth"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1}},{"$sort":{"distance":1}},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
@@ -183,7 +181,7 @@ module.exports = {
                         function(innerCallback){
                             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
                             let minDistance = parseFloat(dataObject.minDistance)*1000+1;
-                            Outlet.aggregate([
+                            OutletModel.aggregate([
                                 {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"book"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1}},{"$sort":{"distance":1}},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
@@ -232,7 +230,7 @@ module.exports = {
                         function(innerCallback){
                             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
                             let minDistance = parseFloat(dataObject.minDistance)*1000+1;
-                            Outlet.aggregate([
+                            OutletModel.aggregate([
                                 {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"consumer"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1}},{"$sort":{"distance":1}},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
@@ -281,7 +279,7 @@ module.exports = {
                         function(innerCallback){
                             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
                             let minDistance = parseFloat(dataObject.minDistance)*1000+1;
-                            Outlet.aggregate([
+                            OutletModel.aggregate([
                                 {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"watch"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1}},{"$sort":{"distance":1}},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){

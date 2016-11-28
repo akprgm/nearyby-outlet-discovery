@@ -2,11 +2,10 @@ var mongoose = require('mongoose');
 var redis = require('redis');
 var async = require('async');
 var request = require('request');
-var models = require('../../models/appModel');
 var validator = require('../validator');
 var utility = require('../utility');
 var env = require('../../env/development.js');
-var UserModel = models.user;
+var UserModel = mongoose.model('user');
 var USER = {
     findIndex: function findIndex(arr,value,start,last,mstart,mlast){
         if(mstart>=mlast/2){
@@ -128,11 +127,10 @@ module.exports = {
     },
     userRanking: function userRanking(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id)){
-            let User = new UserModel();
             async.parallel([
                 function(callback){
                     let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-                    User.aggregate([{"$match":{"_id":user_id}},{"$project":{"_id":1,"rating":1,"review":1,"check_in":1,"userActivities":{"$add":["$rating","$review","$check_in"]}}}],function(err,result){
+                    UserModel.aggregate([{"$match":{"_id":user_id}},{"$project":{"_id":1,"rating":1,"review":1,"check_in":1,"userActivities":{"$add":["$rating","$review","$check_in"]}}}],function(err,result){
                         if(!err && result.length>0){
                             callback(null, result[0]);
                         }else{
@@ -141,7 +139,7 @@ module.exports = {
                     });
                 },
                 function(callback){
-                    User.aggregate([{"$project":{"_id":1,"totalPoints":{"$add":["$rating","$review","$check_in"]}}},{"$sort":{"totalPoints":-1}}],function(err,result){
+                    UserModel.aggregate([{"$project":{"_id":1,"totalPoints":{"$add":["$rating","$review","$check_in"]}}},{"$sort":{"totalPoints":-1}}],function(err,result){
                         if(!err && result.length>0){
                             callback(null, result);
                         }else{
@@ -214,12 +212,11 @@ module.exports = {
     },
     likeProfile: function likeProfile(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.profile_id)){
-            let User = new UserModel();
-            User.update({"_id":dataObject.user_id},{"$pull":{"likedProfiles":dataObject.profile_id}},function(err,result){
+            UserModel.update({"_id":dataObject.user_id},{"$pull":{"likedProfiles":dataObject.profile_id}},function(err,result){
                 if(!err && result.nModified>0){//already liked by user
                     utility.successRequest(response);
                 }else{//liking profile
-                    User.update({"_id":dataObject.user_id},{"$push":{"likedProfiles":dataObject.profile_id}},function(err,result){
+                    UserModel.update({"_id":dataObject.user_id},{"$push":{"likedProfiles":dataObject.profile_id}},function(err,result){
                         if(!err && result.nModified>0){
                             utility.successRequest(response);                            
                         }else{
@@ -234,12 +231,11 @@ module.exports = {
     },
     followOutlet: function followOutlet(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id)){
-            let User = new UserModel();
-            User.update({"_id":dataObject.user_id},{"$pull":{"followedOutlets":dataObject.outlet_id}},function(err,result){
+            UserModel.update({"_id":dataObject.user_id},{"$pull":{"followedOutlets":dataObject.outlet_id}},function(err,result){
                 if(!err && result.nModified>0){//already liked by user
                     utility.successRequest(response);
                 }else{//liking profile
-                    User.update({"_id":dataObject.user_id},{"$push":{"followedOutlets":dataObject.outlet_id}},function(err,result){
+                    UserModel.update({"_id":dataObject.user_id},{"$push":{"followedOutlets":dataObject.outlet_id}},function(err,result){
                         if(!err && result.nModified>0){
                             utility.successRequest(response);                            
                         }else{

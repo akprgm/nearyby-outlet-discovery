@@ -4,9 +4,11 @@ var redis = require('redis');
 var async = require('async');
 var jwt = require('jsonwebtoken');
 var request = require('request');
+var gm = require('gm');
 var env = require('../env/development');
-var models = require('../models/appModel');
 var validator = require('./validator');
+var appModel = require('../models/appModel.js');
+var ImageModel = mongoose.model('image');
 var redisClient = redis.createClient();
 var redisFlag = true;
 redisClient.on('error',function(err){
@@ -14,9 +16,8 @@ redisClient.on('error',function(err){
 });
 var utility = {
     user: function(user_id,userCallback){//getting basic user info from mongo
-        var userModel = models.user;
-        var user = new userModel();//getting user model 
-        user.findById(user_id,function(err,user){//finding user by mongo object id 
+        var UserModel = mongoose.model('user'); 
+        UserModel.findById(user_id,function(err,user){//finding user by mongo object id 
             if(err){
                 userCallback(null);
             }else{
@@ -25,9 +26,8 @@ var utility = {
         });
     },
     outlet: function(outlet_id,outletInfoCallback){//getting basic outlet info from mongo
-        var outletModel = models.outlet;
-        var outlet = new outletModel();
-        outlet.findById(outlet_id,function(err,outlet){
+        var OutletModel = mongoose.model('outlet');
+        OutletModel.findById(outlet_id,function(err,outlet){
             if(err){
                 outletInfoCallback(null);
             }else{
@@ -137,19 +137,27 @@ module.exports = {
             return false
         }  
     },
-    checkImage: function checkImage(image_path,image_access_path){
+    checkImage: function checkImage(image_path,image_access_path,checkImageCallback){
         try{
-            var fd = fs.openSync(image_path,'r');
-            fs.closeSync(fd);
-            return image_access_path;
+            fs.open(image_path,'r',function(err,fd){
+                if(!err && fd){
+                    fs.closeSync(fd);
+                    checkImageCallback(image_access_path);
+                }else{
+                    checkImageCallback(false);
+                }
+            });
         }catch(err){
             return false;
         }
     },
-    checkOutletImage: function checkOutletImage(image,category,type){
-        let image_path = env.app.gallery_directory+category+"/gallery/"+image;
-        let image_access_path = env.app.gallery_url+category+"/gallery/"+image;
-        return module.exports.checkImage(image_path,image_access_path);
+    checkOutletImage: function checkOutletImage(image,category,size,checkOutletImageCallback){
+        let image_path = env.app.gallery_directory+"/"+category+"/gallery/images_"+size+"/"+image;
+        let image_access_path = env.app.gallery_url+"/"+category+"/gallery/images_"+size+"/"+image;
+        console.log(image_path);
+        module.exports.checkImage(image_path,image_access_path,function(value){
+            checkOutletImageCallback(value);
+        });
     },
     outletDefaultCoverImage: function defaultImage(result){
         async.forEachOf(result,function(value,key,callback){
@@ -157,47 +165,115 @@ module.exports = {
             let category = value.outlet_info[0].category;
             let image_path = env.app.gallery_url+category+"/cover_images/"+cover_image;
             let image_access_path = env.app.gallery_url+category+"/cover_images/"+cover_image;            
-            let new_image_url = module.exports.checkImage(image_path,image_access_path);
-            if(new_image_url){
-                value.outlet_info[0].cover_image = new_image_url;
-            }else{
-                value.outlet_info[0].cover_image = env.app.gallery_url + "/s.jpg";
-            }
+            module.exports.checkImage(image_path,image_access_path,function(image_name){
+                if(image_name){
+                    value.outlet_info[0].cover_image = image_name;
+                }else{
+                    value.outlet_info[0].cover_image = env.app.gallery_url + "/s.jpg";
+                }
+            });
         },function(err){
             if(err){
                 utility.internalServerError(response);
             }
         });
     },
+    saveImage: function saveImage(imageObject,image,saveImagecallback){
+        let imageBuff = new Buffer(image, 'base64');
+        gm(imageBuff).identify(function(err,imageInfo){
+            let imagePathOriginal = env.app.gallery_directory+imageObject.category+"/gallery/images_original/"+imageObject.image;                        
+            let imagePath1024 = env.app.gallery_directory+imageObject.category+"/gallery/images_1024/"+imageObject.image;
+            let imagePath500 = env.app.gallery_directory+imageObject.category+"/gallery/images_500/"+imageObject.image;
+            if(imageInfo.format == 'JPEG'){
+                async.parallel([
+                    function(imageCallback){
+                        gm(imageBuff).autoOrient().write(imagePathOriginal,function(err){
+                            if(err){
+                                fs.writeFileSync(imagePathOriginal,imageBuff);
+                            }
+                            module.exports.checkImage(imagePathOriginal,true,function(value){
+                                imageCallback(null,value);
+                            });
+                        });
+                    },
+                    function(imageCallback){
+                        gm(imageBuff).autoOrient().resize(null,1024).write(imagePath1024,function(err){
+                            if(err){
+                                fs.writeFileSync(imagePathOriginal,imageBuff);
+                            }
+                            module.exports.checkImage(imagePath1024,true,function(value){
+                                imageCallback(null,value);
+                            });
+                        });
+                    },
+                    function(imageCallback){
+                        gm(imageBuff).autoOrient().resize(null,500).write(imagePath500,function(err){
+                            if(err){
+                                fs.writeFileSync(imagePathOriginal,imageBuff);
+                            }
+                            module.exports.checkImage(imagePath500,true,function(value){
+                                imageCallback(null,value);
+                            });
+                        });
+                    }
+                ],function(err,result){
+                    if(!err && result[0] && result[1] && result[2]){
+                        let image = new ImageModel(imageObject);
+                        image.save(function(err,result){
+                            if(!err && result){
+                                saveImagecallback(result._id);                            
+                            }else{
+                                saveImagecallback(false);
+                            }
+                        })
+                    }else{
+                        saveImagecallback(false);
+                    }
+                })
+            }else{
+                saveImagecallback(false);               
+            }
+        });
+    },
     saveUserReviews: function saveUserReviews(dataObject){
-        let userReviewKey = dataObject.user_id+":reviews";
-        let userReviewUrl = env.app.url+"getUserReviews?user_id="+dataObject.user_id+"&access_token="+dataObject.access_token;
-        request(userReviewUrl,function(err,res,body){
-            if(!err && res.statusCode==200){
-                module.exports.redisSaveKey(userReviewKey,JSON.stringify(body.message));
-            }
-        });
-        let outletReviewKey = dataObject.outlet_id+":reviews";
-        let outletReviewUrl = env.app.url+"getOutletReviews?outlet_id="+dataObject.outlet_id+"&access_token="+dataObject.access_token;
-        request(outletReviewUrl,function(err,res,body){
-            if(!err && res.statusCode==200){
-                module.exports.redisSaveKey(outletReviewKey,JSON.stringify(body.message));
-            }
-        });
+        if(redisFlag && validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id)){
+            let userReviewKey = dataObject.user_id+":reviews";
+            let ReviewModel = mongoose.model('review');
+            let user_id = mongoose.Types.ObjectId(dataObject.user_id);
+            ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"review":{"$ne":""},"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                if(!err && result){
+                    module.exports.outletDefaultCoverImage(result);
+                    module.exports.redisSaveKey(userReviewKey,JSON.stringify(result));
+                }
+            });
+            let outletReviewKey = dataObject.outlet_id+":reviews";
+            let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
+            ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"outlet_id":outlet_id,"review":{"$ne":""},"outlet_info":{"$ne":[]},"user_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.image":1}},{"$sort":{"date":-1}}],function(err,result){
+                if(!err && result){
+                    module.exports.outletDefaultCoverImage(result);
+                    module.exports.redisSaveKey(outletReviewKey,JSON.stringify(result));
+                }
+            });
+        }
     },
     saveUserRating: function saveUserRating(dataObject){
-        var ratingKey = dataObject.user_id+":ratings";
-        let ratingUrl = env.app.url+"getUserRatings?user_id="+dataObject.user_id+"&access_token="+dataObject.access_token;                                
-        request(ratingUrl,function(err,res,body){
-            if(!err && res.statusCode==200){
-                module.exports.redisSaveKey(ratingKey,JSON.stringify(body.message));
-            }
-        });
+        if(redisFlag && validator.validateObjectId(dataObject.user_id)){
+            var ratingKey = dataObject.user_id+":ratings";
+            let RatingModel = mongoose.model('rating');
+            let user_id = mongoose.Types.ObjectId(dataObject.user_id);
+            RatingModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                if(!err && result){
+                    module.exports.outletDefaultCoverImage(result);
+                    module.exports.redisSaveKey(ratingKey,JSON.stringify(result));
+                }
+            });
+        }
     },
     saveOutletDetails : function saveOutletDetails(dataObject){
-        if(validator.validateObjectId(dataObject.outlet_id)){
+        if(redisFlag && validator.validateObjectId(dataObject.outlet_id)){
             async.waterfall([
                 function(callback){//finding the outlet Deatils
+                    let Outlet = models.outlet;
                     let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
                     Outlet.find({"_id":outlet_id,"status":true},function(err,outlet){
                         if(!err && outlet.length>0){
@@ -207,7 +283,7 @@ module.exports = {
                         }
                     });         
                 },
-                function(outlet,callback){
+                function(outlet,callback){//manipulating outlet object
                     var obj = {
                         name: outlet.name,
                         cover_image: outlet.cover_image,
@@ -222,7 +298,7 @@ module.exports = {
                         tags: outlet.tags,
                         labels: outlet.labels
                     }
-                    switch(outlet.category){
+                    switch(outlet.category){//creating outlet object based on their category
                         case 'book':
                                 obj.stm = {
                                     cost_rating: outlet.cost_rate,
@@ -264,10 +340,9 @@ module.exports = {
                             break;
                         default:
                     }
-
-                    //getting outle review and images 
+                    //getting outlet review and images 
                     async.parallel([
-                        function(callback2){
+                        function(callback2){//getting latest 2 reviews for this outlet
                             let outletReviewUrl = env.app.url+"getOutletReviews?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id;
                             request(outletReviewUrl,function(err,res,body){
                                 if(!err && res.statusCode==200){
@@ -279,7 +354,7 @@ module.exports = {
                                 callback2();                            
                             });
                         },
-                        function(callback2){
+                        function(callback2){//getting latest 4 images uploaded for this outlet
                            let outletImageUrl = env.app.url+"getOutletImages?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id;
                             request(outletImageUrl,function(err,res,body){
                                 if(!err && res.statusCode==200){

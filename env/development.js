@@ -2,9 +2,9 @@ module.exports = {
     app:{
         port:5000,
         url: "http://localhost/node/",
-        gallery_url: "http://10.0.0.4/public/assets/gallery",
+        gallery_url: "http://localhost/public/assets/gallery",
         base_directory: "/home/faagio/faagioNode/",
-        gallery_directory: "/home/faagio/faagioNode/public/assets/gallery/"
+        gallery_directory: "/var/www/html/public/assets/gallery/"
     },
     webApp:{
     },

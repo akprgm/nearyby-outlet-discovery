@@ -4,17 +4,14 @@ var request = require('request');
 var env = require('../../env/development');
 var utility = require('../utility');
 var validator = require('../validator');
-var models = require('../../models/appModel');
-var OutletModel = models.outlet;
-var Outlet = new OutletModel();
-var BookMarkModel = models.bookMark;
-var BookMark = new BookMarkModel;
+var OutletModel = mongoose.model('outlet');
+var BookMarkModel = mongoose.model('bookMark');
 module.exports = {
     outletDetails: function outletDetails(dataObject, response){
         if(validator.validateObjectId(dataObject.outlet_id) && validator.validateObjectId(dataObject.user_id)){
             utility.redisFindKey(dataObject.outlet_id,function(outlet){
                 if(outlet = JSON.parse(outlet)){
-                     BookMark.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"outlet_id":1},function(err,bookMark){
+                     BookMarkModel.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"outlet_id":1},function(err,bookMark){
                         if(!err){
                             if(bookMark.length){
                                 outlet.bookMark = true;
@@ -29,7 +26,7 @@ module.exports = {
                     async.waterfall([
                         function(callback){//finding the outlet Deatils
                             let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
-                            Outlet.find({"_id":outlet_id,"status":true},function(err,outlet){
+                            OutletModel.find({"_id":outlet_id,"status":true},function(err,outlet){
                                 if(!err && outlet.length>0){
                                     callback(null,outlet[0]);
                                 }else{
@@ -95,10 +92,10 @@ module.exports = {
                                 default:
                             }
 
-                            //getting outle review and images 
+                            //getting outlet reviews and images 
                             async.parallel([
                                 function(callback2){
-                                    let outletReviewUrl = env.app.url+"getOutletReviews?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id;
+                                    let outletReviewUrl = env.app.url+"getOutletReviews?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id+"&offset=0";
                                     request(outletReviewUrl,function(err,res,body){
                                         if(!err && res.statusCode==200){
                                             let data = JSON.parse(body);
@@ -110,7 +107,7 @@ module.exports = {
                                     });
                                 },
                                 function(callback2){
-                                    let outletImageUrl = env.app.url+"getOutletImages?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id;
+                                    let outletImageUrl = env.app.url+"getOutletImages?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id+"&offset=0";
                                     request(outletImageUrl,function(err,res,body){
                                         if(!err && res.statusCode==200){
                                             let data = JSON.parse(body);
@@ -128,7 +125,7 @@ module.exports = {
                     ],function(err,result){
                         if(!err && validator.validateEmptyObject(result)){
                             utility.redisSaveKey(dataObject.outlet_id,JSON.stringify(result));
-                            BookMark.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"outlet_id":1},function(err,bookMark){
+                            BookMarkModel.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"outlet_id":1},function(err,bookMark){
                                 if(!err){
                                     if(bookMark.length){
                                         result.bookMark = true;
