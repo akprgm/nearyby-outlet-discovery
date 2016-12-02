@@ -14,6 +14,7 @@ var outlet = require('../controllers/app/outlet');
 var search = require('../controllers/app/search');
 var filter = require('../controllers/app/filter');
 var newsFeed = require('../controllers/app/newsFeed');
+var notify = require('../controllers/notification.js');
 var router = Express.Router();
 router.post('/login',function(request,response){//route for login user
     auth.login(request.body,response);
@@ -56,11 +57,11 @@ router.get('/userProfile',function(request,response){
 router.get('/userRanking',function(request,response){
     user.userRanking(request.query,response);
 });
-router.get('/likeProfile',function(request,response){
-    user.likeProfile(request.query,response);
+router.get('/followProfile',function(request,response){
+    user.followProfile(request.query,response);
 });
-router.get('/followOutlet',function(request,response){
-    user.followOutlet(request.query,response);
+router.get('/likeOutlet',function(request,response){
+    user.likeOutlet(request.query,response);
 });
 router.get('/userInfo',function(request,response){
     utility.userInfo(request.query.user_id,function(user){
@@ -152,13 +153,8 @@ router.post('/verifyToken',function(request,response){
         response.send("token valid");
     });
 });
-router.get('/testing',function(requet,response){
-    let result = utility.checkImage(env.app.base_directory+"/controllers/utility.js");
-    if(result){
-        response.send("file found");
-    }else{
-        response.send("file not found");
-    }
+router.get('/testing',function(request,response){
+    notify.test();
 });
 
 module.exports = router;

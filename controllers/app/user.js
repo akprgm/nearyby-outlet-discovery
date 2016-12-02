@@ -149,7 +149,7 @@ module.exports = {
                 }
             ],function(err,result){
                 if(!err && result.length>0){
-                    if(result[0].userActivities){
+                    if(result[0]){
                         let index = USER.findIndex(result[1],result[0],0,result[1].length-1,0,parseInt(Math.log(result[1].length)));                    
                         if(index != null){
                             var Rank = USER.findMatch(result[1],index,result[0]);
@@ -210,7 +210,7 @@ module.exports = {
             utility.badRequest(response);
         }
     },
-    likeProfile: function likeProfile(dataObject, response){
+    followProfile: function followProfile(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.profile_id)){
             UserModel.update({"_id":dataObject.user_id},{"$pull":{"likedProfiles":dataObject.profile_id}},function(err,result){
                 if(!err && result.nModified>0){//already liked by user
@@ -229,7 +229,7 @@ module.exports = {
             utility.badRequest(response);
         }
     },
-    followOutlet: function followOutlet(dataObject, response){
+    likeOutlet: function likeOutlet(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id)){
             UserModel.update({"_id":dataObject.user_id},{"$pull":{"followedOutlets":dataObject.outlet_id}},function(err,result){
                 if(!err && result.nModified>0){//already liked by user

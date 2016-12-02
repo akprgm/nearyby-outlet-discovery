@@ -5,6 +5,7 @@ var userSchema = new Schema({
     email: {type:String, lowercase:true},
     image: {type:String},
     gender: {type:String, enum:["m","f",""], default:"f"},
+    firebase_token: {type:String},
     refresh_token: {type:String, required:true, unique:true},
     city : {type:String, default:""},
     news_letter: {type:Boolean, default:false},
@@ -21,8 +22,8 @@ var userSchema = new Schema({
     review: {type:Number,default:0},
     image_uploaded: {type:Number,default:0},
     check_in: {type:Number,default:0},
-    likedProfiles: [{type:mongoose.Schema.Types.ObjectId, required:true}],
-    followedOutlets: [{type:mongoose.Schema.Types.ObjectId, required:true}] 
+    followedProfiles: [{type:mongoose.Schema.Types.ObjectId, required:true}],
+    likedOutlets: [{type:mongoose.Schema.Types.ObjectId, required:true}] 
 },{ collection: 'users' });
 var outletSchema = new Schema({
     email: {type:String, required:true, unique:true},

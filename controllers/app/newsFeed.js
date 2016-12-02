@@ -16,7 +16,8 @@ module.exports = {
             let sortObj ={ 
                 "sort":{
                     "date":-1
-                }
+                },
+                "limit":1
             }
             if(feedTime >0){
                 timeObj.date={
@@ -25,27 +26,27 @@ module.exports = {
             }
             async.parallel([
                 function(feedTimeCallback){//finding latest review time
-                    ReviewModel.findOne(timeObj,{"date":1},sortObj,function(err,result){
+                    ReviewModel.find(timeObj,{"date":1},sortObj,function(err,result){
                         if(!err && result){
-                            feedTimeCallback(null,result);
+                            feedTimeCallback(null,result[0]);
                         }else{
                             feedTimeCallback(err);
                         }
                     });
                 },
                 function(feedTimeCallback){//finding latest rating time
-                    RatingModel.findOne(timeObj,{"date":1},sortObj,function(err,result){
+                    RatingModel.find(timeObj,{"date":1},sortObj,function(err,result){
                         if(!err && result){
-                            feedTimeCallback(null,result);
+                            feedTimeCallback(null,result[0]);
                         }else{
                             feedTimeCallback(err);
                         }
                     });
                 },
                 function(feedTimeCallback){//finding latest checkin time
-                    CheckInModel.findOne(timeObj,{"date":1},sortObj,function(err,result){
+                    CheckInModel.find(timeObj,{"date":1},sortObj,function(err,result){
                         if(!err && result){
-                            feedTimeCallback(null,result);
+                            feedTimeCallback(null,result[0]);
                         }else{
                             feedTimeCallback(err);
                         }
@@ -60,9 +61,9 @@ module.exports = {
                                 imageIdsCallback(null);
                             },function(err){
                                 if(!err){
-                                    ImageModel.findOne({"_id":{"$nin":ImageIds}},{"date":1},sortObj,function(err,result){
+                                    ImageModel.find({"$and":[{"_id":{"$nin":ImageIds}},timeObj]},{"date":1},sortObj,function(err,result){
                                         if(!err && result){
-                                            feedTimeCallback(null,result);
+                                            feedTimeCallback(null,result[0]);
                                         }else{
                                             feedTimeCallback(err);
                                         }

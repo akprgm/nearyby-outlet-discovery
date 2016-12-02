@@ -8,7 +8,9 @@ module.exports = {
     },
     webApp:{
     },
+    mail:"smtps://info%40faagio.com:@smtp.gmail.com",
     secretKey: 'skynet@faagio',
+    firebaseKey: 'AIzaSyBAHHotmC8ZVrI8z7n3U8oOGjyILiuK38s',
     saltRounds: 10,
     ranking:{
         ratingPoint: 10,

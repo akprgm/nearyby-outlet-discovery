@@ -24,6 +24,7 @@ module.exports = {
             }
             utility.saveImage(imageObject,dataObject.photos,function(bool){
                 if(bool){
+                    UserModel.update({"_id":dataObject.user_id},{"$inc":{"image_uploaded":1}},function(err,user){});
                     utility.successRequest(response);
                 }else{
                     utility.internalServerError(response)
@@ -56,8 +57,8 @@ module.exports = {
     },
     likeImage: function likeImage(dataObject, response){
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.image_id)){
-            Image.remove({"user_id":dataObject.user_id,"image._id":dataObject.image_id},function(err,result){
-                if(!err && result.nModified>0){
+            ImageLikeModel.remove({"$and":[{"user_id":dataObject.user_id},{"image_id":dataObject.image_id}]},function(err,result){
+                if(!err && result.result.n>0){
                     utility.successRequest(response);
                 }else{
                     let obj = {

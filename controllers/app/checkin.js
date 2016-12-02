@@ -3,6 +3,7 @@ var redis = require('redis');
 var async = require('async');
 var validator = require('../validator');
 var utility = require('../utility');
+var UserModel = mongoose.model('user');
 var CheckInModel = mongoose.model('checkIn');
 module.exports = {
     checkInOutlet: function checkIn(dataObject,response){
@@ -29,8 +30,9 @@ module.exports = {
             let checkIn = new CheckInModel(obj);
             checkIn.save(function(err,result){ 
                 if(!err && result){
-                    CheckInModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                    CheckInModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(!err && result.length>0){
+                            UserModel.update({"_id":dataObject.user_id},{"$inc":{"check_in":1}},function(err,user){});
                             utility.outletDefaultCoverImage(result);
                             utility.redisSaveKey(checkInKey,JSON.stringify(result));
                         }else{}
@@ -53,7 +55,7 @@ module.exports = {
                 if(checkIns = JSON.parse(checkIns)){//looking in redis cache store
                     utility.successDataRequest(checkIns.slice(offset,offset+10),response);//sending success response to client  
                 }else{//looking in mongodbs
-                    CheckInModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                    CheckInModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(!err && result.length > 0){
                             utility.outletDefaultCoverImage(result);
                             utility.redisSaveKey(checkInKey,JSON.stringify(result));

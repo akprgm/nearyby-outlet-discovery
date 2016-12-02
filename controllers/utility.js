@@ -5,19 +5,25 @@ var async = require('async');
 var jwt = require('jsonwebtoken');
 var request = require('request');
 var gm = require('gm');
+var nodemailer = require('nodemailer');// create reusable transporter object using the default SMTP transport
 var env = require('../env/development');
 var validator = require('./validator');
 var appModel = require('../models/appModel.js');
 var ImageModel = mongoose.model('image');
 var redisClient = redis.createClient();
+var transporter = nodemailer.createTransport(env.mail);
 var redisFlag = true;
 redisClient.on('error',function(err){
     redisFlag = false;
 });
 var utility = {
-    user: function(user_id,userCallback){//getting basic user info from mongo
+    /*@Desc : getting user from mongo using user document id 
+        * @Param : user document id
+        * @Return : user document
+    */
+    user: function(user_id,userCallback){
         var UserModel = mongoose.model('user'); 
-        UserModel.findById(user_id,function(err,user){//finding user by mongo object id 
+        UserModel.findById(user_id,function(err,user){ 
             if(err){
                 userCallback(null);
             }else{
@@ -25,18 +31,26 @@ var utility = {
             }
         });
     },
-    outlet: function(outlet_id,outletInfoCallback){//getting basic outlet info from mongo
+    /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    outlet: function(outlet_id,outletInfoCallback){//getting outlet from mongo
         var OutletModel = mongoose.model('outlet');
-        OutletModel.findById(outlet_id,function(err,outlet){
+        OutletModel.findById(outlet_id,function(err,outlet){//finding outlet by mongo document id 
             if(err){
                 outletInfoCallback(null);
             }else{
                 outletInfoCallback(outlet);
             }
-        })
+        });
     }
 } 
 module.exports = {
+     /*@Desc : this will find the key in redis and return the result 
+        * @Param : redis key
+        * @Return : value of redis key provided
+    */
     redisFindKey: function redisFidecodedndKey(key,callback){
         key = key.toString();
         if(redisFlag){
@@ -52,6 +66,10 @@ module.exports = {
           callback(null); 
         }
     },
+     /*@Desc : this will store the results with key in redis 
+        * @Param :  redis key
+        * @Return : value of redis key provided
+    */
     redisSaveKey: function redisSaveKey(key,data){
         key = key.toString();
         if(redisFlag){
@@ -60,14 +78,22 @@ module.exports = {
         }
         return ;
     },
-    redisSetExpireTime: function expireKeyTime(key){
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    redisSetExpireTime: function expireKeyTime(key){//this will reset the expire time of key in redis
         key = key.toString();
         if(redisFlag){
             redisClient.expire(key,3600*48)
         }
         return ;
     },
-    userInfo: function userInfo(user_id,callback){//getting user basic info        
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    userInfo: function userInfo(user_id,callback){//getting user        
         if(validator.validateObjectId(user_id)){
             if(redisFlag){
                 redisClient.get(user_id,function(err,user){//checking for user info in redis cache
@@ -93,7 +119,11 @@ module.exports = {
             callback(false);
         }
     },
-    userSendData: function userSendData(user,callback){
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    userSendData: function userSendData(user,userSendDataCallback){//user data used in profile api
         let data = {
             user_id: user._id,
             name: user.name,
@@ -103,40 +133,52 @@ module.exports = {
             review: user.review,
             rating: user.rating,
         }
-        callback(data);
+        userSendDataCallback(data);
     },
-    userBasicData: function userBasicData(user,callback){
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    userBasicData: function userBasicData(user,userBasicDataCallback){//this will return the 
         let basicInfo = {
             user_id: user._id,
             name: user.name,
             image: (user.image)?user.image:"default_user_pic.jpg"
         }
-        callback(basicInfo);    
+        userBasicDataCallback(basicInfo);    
     },
-    outletInfo: function outletInfo(outlet_id,callback){
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    outletInfo: function outletInfo(outlet_id,outletInfoCallback){
         if(validator.validateObjectId(outlet_id)){
             if(redisFlag){
                 redisClient.get(outlet_id,function(err,outlet){
                     if(outlet && !err){
                         outlet = JSON.parse(outlet);
                         redisClient.expire(outlet_id,3600*12);
-                        callback(outlet);
+                        outletInfoCallback(outlet);
                     }else{
                         utility.outlet(outlet_id,function(outlet){
                             redisClient.set(outlet_id,JSON.stringify(outlet));
                             redisClient.expire(outlet_id,3600*12);
-                            callback(outlet);  
+                            outletInfoCallback(outlet);  
                         });
                     }
                 });
             }else{
                 var outletInfo = outletInfo(outlet_id);
-                callback(outletInfo);
+                outletInfoCallback(outletInfo);
             }
         }else{//validation of id failed
             return false
         }  
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     checkImage: function checkImage(image_path,image_access_path,checkImageCallback){
         try{
             fs.open(image_path,'r',function(err,fd){
@@ -151,6 +193,10 @@ module.exports = {
             return false;
         }
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     checkOutletImage: function checkOutletImage(image,category,size,checkOutletImageCallback){
         let image_path = env.app.gallery_directory+"/"+category+"/gallery/images_"+size+"/"+image;
         let image_access_path = env.app.gallery_url+"/"+category+"/gallery/images_"+size+"/"+image;
@@ -159,6 +205,10 @@ module.exports = {
             checkOutletImageCallback(value);
         });
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     outletDefaultCoverImage: function defaultImage(result){
         async.forEachOf(result,function(value,key,callback){
             let cover_image = value.outlet_info[0].cover_image;
@@ -178,6 +228,10 @@ module.exports = {
             }
         });
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     saveImage: function saveImage(imageObject,image,saveImagecallback){
         let imageBuff = new Buffer(image, 'base64');
         gm(imageBuff).identify(function(err,imageInfo){
@@ -235,6 +289,10 @@ module.exports = {
             }
         });
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     saveUserReviews: function saveUserReviews(dataObject){
         if(redisFlag && validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id)){
             let userReviewKey = dataObject.user_id+":reviews";
@@ -256,6 +314,10 @@ module.exports = {
             });
         }
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     saveUserRating: function saveUserRating(dataObject){
         if(redisFlag && validator.validateObjectId(dataObject.user_id)){
             var ratingKey = dataObject.user_id+":ratings";
@@ -269,6 +331,10 @@ module.exports = {
             });
         }
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     saveOutletDetails : function saveOutletDetails(dataObject){
         if(redisFlag && validator.validateObjectId(dataObject.outlet_id)){
             async.waterfall([
@@ -377,8 +443,16 @@ module.exports = {
             });
         }   
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     sendMail: function sendMail(outlet_id,callback){
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     successDataRequest: function successDataRequest(data,response){
         var data = {
             status: true,
@@ -387,6 +461,10 @@ module.exports = {
         response.statusCode = 200;
         response.send(data);
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     successRequest: function successRequest(response){
         var data = {
             status: true,
@@ -395,6 +473,10 @@ module.exports = {
         response.statusCode = 200;
         response.send(data);
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     failureRequest: function failerRequest(response){
         var data = {
             status: true,
@@ -403,6 +485,10 @@ module.exports = {
         response.statusCode = 204;
         response.send(data);
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     badRequest: function badRequest(response){
         var data = {
             status: false,
@@ -411,6 +497,22 @@ module.exports = {
         response.statusCode = 400;
         response.send(data);
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    notFoundRequest: function notFound(response){
+        var data = {
+            status: false,
+            message: "invalid request "
+        }
+        response.statusCode = 404;
+        response.send(data);
+    },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     unauthorizedRequest: function unauthorized(response){
         var data = {
             status: false,
@@ -419,6 +521,10 @@ module.exports = {
         response.statusCode = 401;
         response.send(data);
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     internalServerError: function internalError(response){
         var data = {
             status: false,
@@ -427,6 +533,10 @@ module.exports = {
         response.statusCode = 500;
         response.send(data);
     },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
     conflictRequest: function conflict(response){
         var data = {
             status: false,
@@ -435,30 +545,53 @@ module.exports = {
         response.statusCode = 409;
         response.send(data);
     },
-    verifyToken: function verifyToken(token,type,response,callback){
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    verifyToken: function verifyToken(token,type,response,verifyTokenCallback){
         switch (type) {
             case 'refresh':
-                    jwt.verify(token,env.secretKey,{ignoreExpiration:true},function(err,decoded){
-                        if(err){
-                            module.exports.badRequest(response);
-                        }else if(decoded){
-                            callback();
-                        }else{
-                            module.exports.unauthorizedRequest(response);
-                        }
-                    });                
-                break;
+                jwt.verify(token,env.secretKey,{ignoreExpiration:true},function(err,decoded){
+                    if(err){
+                        module.exports.badRequest(response);
+                    }else if(decoded){
+                        verifyTokenCallback(decoded);
+                    }else{
+                        module.exports.unauthorizedRequest(response);
+                    }
+                });                
+            break;
             default:
-                    jwt.verify(token,env.secretKey,function(err,decoded){
-                        if(err){
-                            module.exports.unauthorizedRequest(response);
-                        }else if(decoded){
-                            callback();
-                        }else{
-                            module.exports.unauthorizedRequest(response);
-                        }
-                    });
-                break;
+                jwt.verify(token,env.secretKey,function(err,decoded){
+                    if(err){
+                        module.exports.unauthorizedRequest(response);
+                    }else if(decoded){
+                        verifyTokenCallback(decoded);
+                    }else{
+                        module.exports.unauthorizedRequest(response);
+                    }
+                });
+            break;
         }
+    },
+     /*@Desc : finding outlet from mongo using outlet document id 
+        * @Param : outlet document id
+        * @Return : outlet document
+    */
+    registerMail: function sendMail(user_mail){
+        var mailOptions = {
+            from: 'info@faagio.com',// sender address
+            to: user_mail,// list of receivers
+            subject: 'Welcome to Faagio', // Subject line
+            text: 'Hi '+data.uname+'thanks for joining us, please active ur account here https://www.faagio.com/activate?',
+            html: '<!doctype html><html><head><meta charset="utf-8"><title>Faagio.com - Sign Up</title></head><body id="signup" style=" background-color: #fff;color: #595655;font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;font-size: 14px;line-height: 1.42857;"><div class="container" style="margin:0 auto;background: #fbfbf3 none repeat scroll 0 0;width: 800px;padding: 0 15px;"> <div class="inner_container" style="margin: 0 auto;overflow: hidden;width:760px;"> <div class="header_top" style=" float: left;margin: 10px 0;width: 100%;"></div> <div class="col-sm-3" style="min-height: 1px;position: relative;width:25%;float:left;"> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <img style="left: 35px;position: relative;top: 34px;width: 55%;margin-top:32px;" id="logo" src="##logo##" alt="faagio"/> </div> </div> <div class="col-sm-9" style="min-height: 1px;position: relative;width:75%;float:left;"> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <span class="title" style="font-family: bakery;font-size: 88pt;font-weight: bold;">Hey There!</span> </div> </div> <div class="header_top" style=" float: left;margin: 10px 0;width: 100%;"></div> <div class="col-sm-3" style="float: left;min-height: 1px;padding: 0 15px;position: relative;width: 21%;"> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <img style="float: left;width: 90%;" class="gallery" src="##galleryimg##" alt="gallery"/> </div> </div> <div class="col-sm-9" style="min-height: 1px;position: relative;width:75%;float:left;"> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="bold_font" style="font-family: avalonbold;font-size: 16.9pt;font-weight: 800;margin: 0;margin-bottom:10px;">WE CAN\'T EVEN BEGIN TO TELL YOU HOW GOOD<br/>IT FEELS TO HAVE YOU AS OUR CUSTOMER!</p> <div class="green_row" style="border-bottom: 2px solid #9cd6c9;width: 100%;margin: 10px 0;"></div> </div> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="bold_font" style="font-family: avalonbold;font-size: 16.9pt;font-weight: 800;margin: 0;margin-bottom:10px;">Now that you\'ve decided to be associated with us, <br/>let us assure you of one thing, GENUINE RESULTS.</p> <div class="green_row" style="border-bottom: 2px solid #9cd6c9;width: 100%;margin: 10px 0;"></div> </div> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="common_content" style="font-family: avalonregular;font-size: 18px;line-height: 25px;">Customer satisfaction for us is of utmost importance. So expect <br/>zero compromises in the quality of our services! Besides that, <br/>you can now happily sift through the best of restaurants, look <br/>for salons and spas, spot that shopping outlet and automobile <br/>showroom! </p> </div> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="common_content" style="font-family: avalonregular;font-size: 18px;line-height: 25px;">Seriously, we are nothing less than a parallel of Willy Wonka\'s <br/>Chocolate factory, only we get you a myriad of options! </p> </div> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="common_content" style="font-family: avalonregular;font-size: 18px;line-height: 25px;">Your username : ##username##</p> <p class="common_content" style="font-family: avalonregular;font-size: 18px;line-height: 25px;">Your Password : ##password##</p> <p class="common_content" style="font-family: avalonregular;font-size: 18px;line-height: 25px;">Active Your Account : <a href="##link##">Click Here</a></p> </div> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="bold_font" style="font-family: avalonbold;font-size: 16.9pt;font-weight: 800;margin: 0;margin-bottom:10px;">Wishing you a happy time </p> </div> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="thanks" style="font-family: bakery;font-size: 40pt;margin: 10px 0;">Team Faagio</p> </div> </div> <br/> <br/> <br/> <br/> <div class="col-sm-3" style="min-height: 1px;position: relative;width:25%;float:left;"> </div> <div class="col-sm-9" style="min-height: 1px;position: relative;width:75%;float:left;"> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="footer_add" style="font-size:11px;margin:5px 0px;">For help, please email us at <a style="color:#595655;font-weight:bold;" href="mailto:feedback@faagio.com">feedback@faagio.com</a></p> </div> </div> <div class="col-sm-3" style="min-height: 1px;position: relative;width:25%;float:left;"> </div> <div class="col-sm-9" style="min-height: 1px;position: relative;width:75%;float:left;"> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="footer_add" style="font-size:11px;margin:5px 0px;font-weight:bold;">Unsubscribe from these emails | <a style="color:#595655;font-weight:bold;" href="#">Notification Settings</a></p> </div> </div> <div class="col-sm-3" style="min-height: 1px;position: relative;width:25%;float:left;"> </div> <div class="col-sm-9" style="min-height: 1px;position: relative;width:75%;float:left;"> <div class="row" style="margin-left: -15px;margin-right: -15px;"> <p class="footer_add" style="font-size:11px;margin:5px 0px;">&copy; Faagio - 403, D-23, 100 Foot Road, Chattarpur Hills, Chattarpur, New Delhi- 74</p> </div> </div></div> </div></body></html>'
+        }
+        transporter.sendMail(mailOptions, function(error, info){
+            if(error){
+                console.log(false);
+            }else
+                console.log(true);
+        });
     }
 }

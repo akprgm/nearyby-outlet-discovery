@@ -14,7 +14,6 @@ module.exports = (function (env) {
       config = require('../env/staging');
       break;
     default:
-      console.error('NODE_ENV environment variable not set');
       process.exit(1);
   }
   return config;

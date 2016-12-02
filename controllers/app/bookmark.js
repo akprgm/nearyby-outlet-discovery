@@ -12,14 +12,13 @@ module.exports = {
             BookMarkModel.remove({user_id:dataObject.user_id,outlet_id:dataObject.outlet_id},function(err,result){
                 if(err){
                     utility.internalServerError(response);
-                }
-                if(!err && result.result.n>0){
+                }else if(!err && result.result.n>0){
                     BookMarkModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"user_id":user_id,"outlet_info":{"$ne":[]}}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1}},{"$sort":{"date":-1}}],function(err,result){
-                            if(!err && result){
-                                utility.outletDefaultCoverImage(result);
-                                utility.redisSaveKey(bookMarkKey,JSON.stringify(result));
-                            }else{}
-                        });
+                        if(!err && result){
+                            utility.outletDefaultCoverImage(result);
+                            utility.redisSaveKey(bookMarkKey,JSON.stringify(result));
+                        }else{}
+                    });
                     utility.successRequest(response);
                 }else{
                     let obj = {
@@ -64,8 +63,7 @@ module.exports = {
                         if(!err && result.length>0){
                             utility.outletDefaultCoverImage(result);
                             utility.redisSaveKey(bookMarkKey,JSON.stringify(result));                            
-                            utility.successDataRequest(result.slice(offset,offset+10),response);//sending success response to client                              
-                                
+                            utility.successDataRequest(result.slice(offset,offset+10),response);//sending success response to client                                         
                         }else{
                             utility.failureRequest(response);
                         }

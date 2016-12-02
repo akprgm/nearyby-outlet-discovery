@@ -20,7 +20,7 @@ var FILTER = {
                 }else{
                     value.cover_image = env.app.gallery_url+"/s.jpg";
                 }
-                if(!bookMarks){
+                if(!bookMarks.length){
                     value.bookMark = false;
                 }
                 async.map(bookMarks,function(bookmark,bookMarkCallBack){
@@ -51,7 +51,7 @@ var FILTER = {
             function(callback){
                 async.parallel([
                     function(innerCallback){
-                        Outlet.aggregate(query,function(err,result){
+                        OutletModel.aggregate(query,function(err,result){
                                 if(!err && result){
                                     innerCallback(null,result)
                                 }else{
@@ -60,7 +60,7 @@ var FILTER = {
                             });
                         },
                     function(innerCallback){
-                        BookMark.find({"user_id":user_id},{"outlet_id":1},function(err,result){
+                        BookMarkModel.find({"user_id":user_id},{"outlet_id":1},function(err,result){
                             if(!err){
                                 innerCallback(null,result);
                             }else{
@@ -105,8 +105,6 @@ module.exports = {
                     name:1,
                     location:1,
                     contacts:1,
-                    outlet_type:1,
-                    outlet_accept:1,
                     star:1,
                     rating:1,
                     cost_rating:1

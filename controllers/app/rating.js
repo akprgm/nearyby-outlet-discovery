@@ -65,6 +65,7 @@ module.exports = {
                                             let rating = new RatingModel(obj);
                                             rating.save(function(err,result){
                                                 if(!err && result){
+                                                    UserModel.update({"_id":dataObject.user_id},{"$inc":{"rating":1}},function(err,user){});
                                                     utility.saveUserRating(dataObject);
                                                     callback(null,true);
                                                 }else{
@@ -77,6 +78,7 @@ module.exports = {
                                 function(callback){
                                     review.save(function(err,result){
                                         if(!err && result){//find user Reviews and store them in redis cache
+                                            UserModel.update({"_id":dataObject.user_id},{"$inc":{"review":1}},function(err,user){});
                                             utility.saveUserReviews(dataObject);
                                             callback(null,true);
                                         }else{
@@ -118,6 +120,7 @@ module.exports = {
                                     let rating = new RatingModel(obj);
                                     rating.save(function(err,result){
                                         if(!err && result){
+                                            UserModel.update({"_id":dataObject.user_id},{"$inc":{"rating":1}},function(err,user){});
                                             utility.saveUserRating(dataObject);
                                             callback(null,true);
                                         }else{
@@ -130,6 +133,7 @@ module.exports = {
                         function(callback){
                             review.save(function(err,result){
                                 if(!err && result){//find user Reviews and store them in redis cache
+                                    UserModel.update({"_id":dataObject.user_id},{"$inc":{"reviews":1}},function(err,user){});
                                     utility.saveUserReviews(dataObject);
                                     callback(null,true);
                                 }else{
@@ -165,6 +169,7 @@ module.exports = {
                         let rating = new RatingModel(obj);
                         rating.save(function(err,result){
                             if(!err && result){
+                                UserModel.update({"_id":dataObject.user_id},{"$inc":{"rating":1}},function(err,user){});
                                 utility.saveUserRating(dataObject);
                                 utility.successRequest(response);
                             }else{
@@ -180,7 +185,7 @@ module.exports = {
     },
     reviewLike: function reviewLike(dataObject, response){//function for liking a review
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.review_id)){
-            RatingModel.update({"_id":dataObject.review_id},{"$pull":{"likes":dataObject.user_id}},function(err,result){
+            ReviewModel.update({"_id":dataObject.review_id},{"$pull":{"likes":dataObject.user_id}},function(err,result){
                 if(!err && result.nModified>0){//already liked by user
                     ReviewLikeModel.remove({"user_id":dataObject.user_id,"review_id":dataObject.review_id},function(err){
                         if(!err){
@@ -190,7 +195,7 @@ module.exports = {
                         }
                     });
                 }else{//liking review
-                    RatingModel.update({"_id":dataObject.review_id},{"$push":{"likes":dataObject.user_id}},function(err,result){
+                    ReviewModel.update({"_id":dataObject.review_id},{"$push":{"likes":dataObject.user_id}},function(err,result){
                         if(!err && result.nModified>0){
                             let obj = {
                                 user_id: dataObject.user_id,

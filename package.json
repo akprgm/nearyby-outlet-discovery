@@ -26,6 +26,7 @@
     "jsonwebtoken": "^7.1.9",
     "mongoose": "^4.6.0",
     "morgan": "^1.7.0",
+    "node-gcm": "^0.14.4",
     "redis": "^2.6.2",
     "request": "^2.76.0",
     "serve-favicon": "^2.3.0",

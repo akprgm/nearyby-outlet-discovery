@@ -2,6 +2,8 @@ var Express = require('express');//getting express routing module
 var favicon = require('serve-favicon');
 var morgan = require('morgan');
 var bcrypt = require('bcrypt');
+var jwt = require('jsonwebtoken');
+var env = require('./env/development');
 var bodyParsar = require('body-parser');
 var app = Express();//creating app instance of Express router
 var MongoClient = require('mongodb').MongoClient;
@@ -876,6 +878,21 @@ app.get('/manage/hashPassword',function(req,res){
     })
     res.send("password management done");   
 });
-app.listen(5000,function(){
+app.get('/manage/refreshToken',function(req,res){
+    var users = db.collection('users').find();
+    users.each(function(err,user){
+        if(user){
+            if(user.auth_type==="faagio"){
+                let refresh_token = jwt.sign({id:user.email,auth_type:"faagio"},env.secretKey);//refresh token for user
+                db.collection('users').update({"_id":user._id},{"$set":{"refresh_token":refresh_token}});
+            }else{
+                let refresh_token = jwt.sign({id:user.social_id,auth_type:"faagio"},env.secretKey);//refresh token for user                
+                db.collection('users').update({"_id":user._id},{"$set":{"refresh_token":refresh_token}});
+            }
+        }
+    });
+    res.send("done");
+});
+app.listen(5004,function(){
     console.log("server listening on port 5000");
 }); 
