@@ -11,7 +11,7 @@ module.exports = {
         if(validator.validateObjectId(dataObject.outlet_id) && validator.validateObjectId(dataObject.user_id)){
             utility.redisFindKey(dataObject.outlet_id,function(outlet){
                 if(outlet = JSON.parse(outlet)){
-                     BookMarkModel.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"outlet_id":1},function(err,bookMark){
+                     BookMarkModel.find({"$and":[{"user_id":dataObject.user_id},{"outlet_id":dataObject.outlet_id}]},{"outlet_id":1},function(err,bookMark){
                         if(!err){
                             if(bookMark.length){
                                 outlet.bookMark = true;
@@ -125,7 +125,7 @@ module.exports = {
                     ],function(err,result){
                         if(!err && validator.validateEmptyObject(result)){
                             utility.redisSaveKey(dataObject.outlet_id,JSON.stringify(result));
-                            BookMarkModel.find({"user_id":dataObject.user_id,"outlet_id":dataObject.outlet_id},{"outlet_id":1},function(err,bookMark){
+                            BookMarkModel.find({"$and":[{"user_id":dataObject.user_id},{"outlet_id":dataObject.outlet_id}]},{"outlet_id":1},function(err,bookMark){
                                 if(!err){
                                     if(bookMark.length){
                                         result.bookMark = true;

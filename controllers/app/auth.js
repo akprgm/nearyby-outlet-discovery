@@ -152,7 +152,7 @@ module.exports = {
                                                 });
                                         },
                                         function(registerCallback1){
-                                            UserModel.findOne({email:user.email,auth_type:"faagio"},function(err,result){//checking whether user with this social id already exist or not
+                                            UserModel.findOne({"$and":[{email:user.email},{auth_type:"faagio"}]},function(err,result){//checking whether user with this social id already exist or not
                                                 if(err){
                                                     registerCallback1(err);
                                                 }else{//no error in query operation 

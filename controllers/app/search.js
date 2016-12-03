@@ -150,6 +150,7 @@ module.exports = {
         if(validator.validateObjectId(dataObject.user_id) && (typeof(dataObject.search_string) == 'string') && (typeof(dataObject.category) == 'string') && validator.validateOffset(dataObject.offset)){
             let category = dataObject.category;
             let offset = parseInt(dataObject.offset);
+            let obj;
             let query = new Array();
             let project ={
                 $project:{
@@ -177,18 +178,21 @@ module.exports = {
             }
             let match = {
                 $match:{
-                    $text:{
+                    $and:[
+                    {$text:{
                         $search:dataObject.search_string
-                    },
+                    }}]
+
                 }
             }
             if(typeof(dataObject.cost_rating) == 'object' && dataObject.cost_rating.length>0){
                 let cost_rating = [parseInt(dataObject.cost_rating[0]),parseInt(dataObject.cost_rating[1])]; 
                 if(cost_rating[0]>=0 && cost_rating[1]<=5){
-                    match.$match.cost_rating ={
-                        $lte: cost_rating[1],
-                        $gte: cost_rating[0]
-                    }
+                    match.$match.$and.push({cost_rating:{
+                            $lte: cost_rating[1],
+                            $gte: cost_rating[0]
+                        }
+                    });
                 }
             }
             if(typeof(dataObject.outlet_type) == 'object' && dataObject.outlet_type.length>0){
@@ -200,9 +204,9 @@ module.exports = {
                     }
                 });
                 if(checkFlag){
-                    match.$match.outlet_type = {
+                    match.$match.$and.push({outlet_type:{
                         $all:dataObject.outlet_type
-                    }
+                    }});
                 }
             }
             if(typeof(dataObject.outlet_accept) == 'object' && dataObject.outlet_accept.length>0){
@@ -214,9 +218,9 @@ module.exports = {
                     }
                 });
                 if(checkFlag){
-                    match.$match.outlet_accept= {
+                    match.$match.$and.push({outlet_accept:{
                         $all:dataObject.outlet_accept
-                    }
+                    }});
                 }
             }
             if(typeof(dataObject.gender) == 'object' && dataObject.gender.length>0){
@@ -228,16 +232,18 @@ module.exports = {
                     }
                 });
                 if(checkFlag){
-                    match.$match.gender= {
+                    match.$match.$and.push({gender: {
                         $all:dataObject.gender
-                    }
+                    }});
                 }
             }
             if(typeof(dataObject.labels) == 'object' && dataObject.labels.length>0){
                 async.forEachOf(dataObject.labels,function(value,key){
                     if(value.length>0){
                         let field = "labels."+value;
-                        match.$match[field]= "Yes";                
+                        obj = {}
+                        obj[field] = "Yes";
+                        match.$match.$and.push(obj);                                                        
                     }
                 }); 
             }
