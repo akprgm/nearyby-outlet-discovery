@@ -9,8 +9,9 @@ var ImageModel = mongoose.model('image');
 var ImageCommentModel = mongoose.model('imageComment');
 var ImageLikeModel = mongoose.model('imageLike');
 var UserModel = mongoose.model('user');
+var OutletModel = mongoose.model('outlet');
 module.exports = {
-    uploadImage: function uploadImage(dataObject, response){
+    uploadImage: function uploadImage(dataObject, response){//upload image
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id) && validator.validateCategory(dataObject.category) && typeof(dataObject.photos)=='string'){
             let dateTime = (new Date).getTime();
             let imageName = dataObject.user_id+"_"+dataObject.category+"_"+dateTime+".jpg";
@@ -34,7 +35,7 @@ module.exports = {
             utility.badRequest(response);
         }
     },
-    commentImage: function commentImage(dataObject, response){
+    commentImage: function commentImage(dataObject, response){//do comments on image
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.image_id) && typeof(dataObject.comment) == 'string'){
             let obj = {
                 user_id: dataObject.user_id,
@@ -55,7 +56,7 @@ module.exports = {
             utility.badRequest(response);
         }
     },
-    likeImage: function likeImage(dataObject, response){
+    likeImage: function likeImage(dataObject, response){//like image
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.image_id)){
             ImageLikeModel.remove({"$and":[{"user_id":dataObject.user_id},{"image_id":dataObject.image_id}]},function(err,result){
                 if(!err && result.result.n>0){
@@ -80,7 +81,7 @@ module.exports = {
             utility.badRequest(response);
         }
     },
-    getUserPics: function getUserPics(dataObject, response){ 
+    getUserPics: function getUserPics(dataObject, response){//getting user pics
         if(validator.validateObjectId(dataObject.user_id)){
             let user_id = mongoose.Types.ObjectId(dataObject.user_id);
             ImageModel.aggregate([{"$match":{"user_id":user_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,result){
@@ -106,7 +107,7 @@ module.exports = {
         }
         
     },
-    getOutletPics: function getOutletPics(dataObject, response){   
+    getOutletPics: function getOutletPics(dataObject, response){//getting outlet pics  
         if(validator.validateObjectId(dataObject.outlet_id)){
             let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
             ImageModel.aggregate([{"$match":{"outlet_id":outlet_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,result){
@@ -130,5 +131,139 @@ module.exports = {
         }else{
             utility.badRequest(response);
         }    
+    },
+    getImageDetails: function getImageDetails(dataObject, response){//getting image details
+        if(validator.validateObjectId(dataObject.image_id)){
+            ImageModel.findOne({"_id":dataObject.image_id},{"category":1,"user_id":1,"outlet_id":1,"image":1,"uploaded_by":1,"date":1},function(err,image){
+                if(err){
+                    utility.internalServerError(response);
+                }else if(!err && image){//finding comments and others info about image
+                    image = image.toObject();
+                    async.parallel([
+                        function(imageDetailsCallback){//finding total no of likes 
+                            ImageLikeModel.find({"image_id":dataObject.image_id},function(err,imageLikes){
+                                if(err){
+                                    imageDetailsCallback(err);
+                                }else{
+                                    imageDetailsCallback(null,imageLikes.length);
+                                }
+                            });
+                        },
+                        function(imageDetailsCallback){//finding comments on image
+                            ImageCommentModel.find({"image_id":dataObject.image_id},{"user_id":1,"comment":1,"date":1},{"sort":{"date":-1},"limit":10},function(err,imageComment){
+                                if(err){
+                                    imageDetailsCallback(err);
+                                }else{  
+                                    //manipulating comment getting user pic and name
+                                    async.map(imageComment,function(value,commentDetailsCallback){
+                                        UserModel.findOne({"_id":value.user_id},{"name":1,"image":1},function(err,user){
+                                            if(err){
+                                                commentDetailsCallback(err);
+                                            }else{
+                                                value = value.toObject();
+                                                value["user_name"] = user.name;
+                                                value['user_image'] = (user.image)?(user.image):"defualt image";
+                                                commentDetailsCallback(null,value);
+                                            }
+                                        });
+                                    },function(err,imageComment){
+                                        if(err){
+                                            imageDetailsCallback(err);
+                                        }else{
+                                            imageDetailsCallback(null,imageComment);
+                                        }
+                                    });
+                                }
+                            });
+                        },
+                        function(imageDetailsCallback){//getting user name and user image
+                            if(image.user_id){
+                                UserModel.findOne({"_id":image.user_id},{"name":1,"image":1},function(err,user){
+                                    if(err){
+                                        imageDetailsCallback(err);
+                                    }else{  
+                                        image.user_name = user.name;
+                                        image.user_image = (user.image)?(user.image):"defualt image";
+                                        imageDetailsCallback(null);
+                                    }
+                                });
+                            }else{
+                                image.user_name = "";
+                                image.user_image = "";
+                                imageDetailsCallback(null);
+                            }
+                        },
+                        function(imageDetailsCallback){//finding outlet name
+                            OutletModel.findOne({"_id":image.outlet_id},{"name":1},function(err, outlet){
+                                if(err){
+                                    imageDetailsCallback(err);
+                                }else{
+                                    image.outlet_name = outlet.name;
+                                    imageDetailsCallback(null);
+                                }
+                            }); 
+                        },
+                        function(imageDetailsCallback){//finding whether user liked or not this image
+                            ImageLikeModel.findOne({"$and":[{"image_id":dataObject.image_id},{"user_id":dataObject.user_id}]},function(err,likeCheck){
+                                if(err){
+                                    imageDetailsCallback(err);
+                                }else{
+                                    image.liked = true;
+                                    imageDetailsCallback(null);
+                                }
+                            });
+                        }
+                    ],function(err, result){
+                        if(err){
+                            utility.internalServerError(response);
+                        }else{
+                            image.likes = result[0];
+                            image.comments = result[1];
+                            utility.successDataRequest(image,response);
+                        }
+                    })
+                }else{// no image with this id is found
+                    utility.failureRequest(response);
+                }
+            });
+        }else{
+            utility.badRequest(response);
+        }
+    },
+    getCommentsOnImage: function getCommentsOnImage(dataObject, response){//getting comments on images
+        if(validator.validateObjectId(dataObject.image_id) && validator.validateOffset(dataObject.offset)){
+            let offset = parseInt(dataObject.offset);
+            ImageCommentModel.find({"image_id":dataObject.image_id},{"user_id":1,"comment":1,"date":1},{"sort":{"date":-1},"limit":10,"skip":offset},function(err,imageComment){
+                if(err){
+                    utility.internalServerError(response);
+                }else{  
+                    //manipulating comment getting user pic and name
+                    async.map(imageComment,function(value,commentDetailsCallback){
+                        UserModel.findOne({"_id":value.user_id},{"name":1,"image":1},function(err,user){
+                            if(err){
+                                commentDetailsCallback(err);
+                            }else{
+                                value = value.toObject();
+                                value["user_name"] = user.name;
+                                value['user_image'] = (user.image)?(user.image):"defualt image";
+                                commentDetailsCallback(null,value);
+                            }
+                        });
+                    },function(err,imageComment){
+                        if(err){
+                            utility.internalServerError();
+                        }else{
+                            if(imageComment.length){
+                                utility.successDataRequest(imageComment,response);                            
+                            }else{
+                                utility.failureRequest(response);
+                            }
+                        }
+                    });
+                }
+            });
+        }else{
+            utility.badRequest(response);
+        }
     }
 } 

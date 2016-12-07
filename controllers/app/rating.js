@@ -12,6 +12,7 @@ var RatingModel = mongoose.model('rating');
 var ReviewModel = mongoose.model('review');
 var ReviewCommentModel = mongoose.model('reviewComment');
 var ReviewLikeModel = mongoose.model('reviewLike');
+var OutletModel = mongoose.model('outlet');
 module.exports = {
     reviewOutlet: function reviewOutlet(dataObject, response){//rate and review outlet
         if(typeof(dataObject.star) == 'number' && validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id) && validator.validateCategory(dataObject.category)){
@@ -344,5 +345,135 @@ module.exports = {
         }else{
             utility.badRequest(response);
         }   
+    },
+    getReviewDetails: function getReviewDetails(dataObject, response){//getting review Details here
+        if(validator.validateObjectId(dataObject.review_id)){
+            ReviewModel.findOne({"_id":dataObject.review_id},{"outlet_id":1,"user_id":1,"review":1,"category":1,"date":1,"star":1,"images":1,"comments":1,"likes":1},function(err,review){
+                if(err){
+                    utility.internalServerError(response);
+                }else{
+                    if(review){
+                        review = review.toObject();
+                        async.parallel([
+                            function(reviewDetailsCallback){//getting user details
+                                ReviewCommentModel.aggregate([{"$match":{"$and":[{"review_id":dataObject.review_id},{"user_id":{"$in":review.comments}}]}},{"$project":{"user_id":1,"comment":1,"date":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,reviewComment){
+                                    if(err){
+                                        reviewDetailsCallback(err);
+                                    }else{  
+                                        //manipulating comment getting user pic and name
+                                        async.map(reviewComment,function(value,commentDetailsCallback){
+                                            UserModel.findOne({"_id":value.user_id},{"name":1,"image":1},function(err,user){
+                                                if(err){
+                                                    commentDetailsCallback(err);
+                                                }else{
+                                                    value = value.toObject();
+                                                    value["user_name"] = user.name;
+                                                    value['user_image'] = (user.image)?(user.image):"defualt image";
+                                                    commentDetailsCallback(null,value);
+                                                }
+                                            });
+                                        },function(err,reviewComment){
+                                            if(err){
+                                                reviewDetailsCallback(err);
+                                            }else{
+                                                reviewDetailsCallback(null,reviewComment);
+                                            }
+                                        });
+                                    }
+                                });
+                            },
+                            function(reviewDetailCallback){//getting user details
+                                if(review.user_id){
+                                    UserModel.findOne({"_id":review.user_id},{"name":1,"image":1},function(err,user){
+                                        if(err){
+                                            reviewDetailCallback(err);
+                                        }else{ 
+                                            if(user){
+                                                review.user_name = user.name;
+                                                review.user_image = (user.image)?(user.image):"defualt image";
+                                                reviewDetailCallback(null);
+                                            }else{
+                                                review.user_name = "";
+                                                review.user_image = "";
+                                                reviewDetailCallback(null);
+                                            }
+                                        }
+                                    });
+                                }else{
+                                    review.user_name = "";
+                                    review.user_image = "";
+                                    reviewDetailCallback(null);
+                                }
+                            },
+                            function(reviewDetailCallback){//getting outlet details
+                                OutletModel.findOne({"_id":review.outlet_id},{"name":1},function(err, outlet){
+                                    if(err){
+                                        reviewDetailCallback(err);
+                                    }else{
+                                        review.outlet_name = outlet.name;
+                                        reviewDetailCallback(null);
+                                    }
+                                }); 
+                            }
+                        ],function(err,result){
+                            if(err){
+                                utility.internalServerError(response);
+                            }else{
+                                review.likes = result[0];
+                                review.comments = result[1];
+                                utility.successDataRequest(review,response);
+                            }       
+                        });
+                    }else{
+                        utility.notFoundRequest(response);
+                    }
+                }
+            });
+        }else{
+            utility.badRequest(response);
+        }
+    },
+    getCommentsOnReview: function getCommentsOnReview(dataObject, response){//getting comments on review 
+        if(validator.validateObjectId(dataObject.review_id) && validator.validateOffset(dataObject.offset)){
+            let offset = parseInt(dataObject.offset);
+            ReviewCommentModel.find({"review_id":dataObject.review_id},{"user_id":1,"comment":1,"date":1},{"sort":{"date":-1},"limit":10,"skip":offset},function(err,reviewComment){
+                if(err){
+                    utility.internalServerError(response);
+                }else if(!err && reviewComment.length){  
+                    //manipulating comment getting user pic and name
+                    async.map(reviewComment,function(value,commentDetailsCallback){
+                        UserModel.findOne({"_id":value.user_id},{"name":1,"image":1},function(err,user){
+                            if(err){
+                                commentDetailsCallback(err);
+                            }else{
+                                if(user){
+                                    value.user_name = user.name;
+                                    value.user_image = (user.image)?(user.image):"defualt image";
+                                    commentDetailsCallback(null);
+                                }else{
+                                    value.user_name = "";
+                                    value.user_image = "";
+                                    commentDetailsCallback(null);
+                                }
+                            }
+                        });
+                    },function(err,reviewComment){
+                        if(err){
+                            utility.internalServerError();
+                        }else{
+                            if(reviewComment.length){
+                                utility.successDataRequest(reviewComment,response);                            
+                            }else{
+                                utility.failureRequest(response);
+                            }
+                        }
+                    });
+                }else{
+                    utility.notFoundRequest(response);
+                }
+            });
+        }else{
+            utility.badRequest(response);
+        }
     }
 }

@@ -106,11 +106,20 @@ router.get('/getUserReviews',function(request,response){//route for getting all 
 router.get('/getOutletReviews',function(request,response){//route for getting all outlet reviews
     rating.getOutletReviews(request.query, response);
 });
+router.get('/getCommentsOnReview',function(request,response){
+    rating.getCommentsOnReview(request.query,response);
+});
+router.get('/reviewDetails',function(request,response){
+    rating.getReviewDetails(request.query,response);
+});
 router.get('/getUserPics',function(request,response){
     image.getUserPics(request.query,response);
 });
 router.get('/getOutletPics',function(request,response){
     image.getOutletPics(request.query,response);
+});
+router.get('/imageDetails',function(request,response){
+    image.getImageDetails(request.query,response);
 });
 router.get('/bookMarkOutlet',function(request,response){//route for bookmarking a outlet 
     bookMark.bookMarkOutlet(request.query,response);
@@ -132,6 +141,9 @@ router.get('/likeImage',function(request,response){//route for liking review
 });
 router.get('/commentImage',function(request,response){//route for commenting on review
     image.commentImage(request.query,response);
+});
+router.get('/getCommentsOnImage',function(request,response){
+    image.getCommentsOnImage(request.query,response);
 });
 router.get('/search',function(request,response){
     search.searchString(request.query,response);

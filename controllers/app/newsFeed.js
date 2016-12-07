@@ -18,7 +18,7 @@ module.exports = {
                     "date":-1
                 },
                 "limit":1
-            }
+            }  
             if(feedTime >0){
                 timeObj.date={
                     "$lt":feedTime
