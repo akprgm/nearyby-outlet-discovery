@@ -68,7 +68,7 @@ module.exports = {
             message.addNotification({//
                 title: 'follow',
                 body: bodyText,
-                icon: 'faagio_logo'
+                icon: 'ic_logo'
             });
             message.addData('user_id',user_id);
             message.addData("user_pic",result[0].image);

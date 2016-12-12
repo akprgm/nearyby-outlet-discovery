@@ -133,7 +133,7 @@ module.exports = {
                             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
                             let minDistance = parseFloat(dataObject.minDistance)*1000+1;
                             OutletModel.aggregate([
-                                {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"cloth"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1}},{"$sort":{"distance":1}},{"$limit":10}
+                                {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"cloth"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1,"discount":1}},{"$sort":{"distance":1}},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
                                     innerCallback(null,result);
@@ -182,7 +182,7 @@ module.exports = {
                             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
                             let minDistance = parseFloat(dataObject.minDistance)*1000+1;
                             OutletModel.aggregate([
-                                {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"book"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1}},{"$sort":{"distance":1}},{"$limit":10}
+                                {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"book"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1,"discount":1}},{"$sort":{"distance":1}},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
                                     innerCallback(null,result);
@@ -231,7 +231,7 @@ module.exports = {
                             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
                             let minDistance = parseFloat(dataObject.minDistance)*1000+1;
                             OutletModel.aggregate([
-                                {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"consumer"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1}},{"$sort":{"distance":1}},{"$limit":10}
+                                {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"consumer"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1,"discount":1}},{"$sort":{"distance":1}},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
                                     innerCallback(null,result);
@@ -280,7 +280,7 @@ module.exports = {
                             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
                             let minDistance = parseFloat(dataObject.minDistance)*1000+1;
                             OutletModel.aggregate([
-                                {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"watch"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1}},{"$sort":{"distance":1}},{"$limit":10}
+                                {"$geoNear":{"near":{"type":"point","coordinates":location},"spherical":true,"query":{"category":"watch"},"distanceField":"distance","minDistance":minDistance,"distanceMultiplier":0.001}},{"$project":{"category":1,"locality":1,"cover_image":1,"name":1,"star":1,"location":1,"distance":1,"contacts":1,"discount":1}},{"$sort":{"distance":1}},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
                                     innerCallback(null,result);

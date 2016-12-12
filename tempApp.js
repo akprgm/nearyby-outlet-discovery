@@ -17,7 +17,6 @@ MongoClient.connect(url, function(err, database) {
   }
   db = database; 
 });
-
 app.all('/',function(req,res){
     console.log("server started");
 });

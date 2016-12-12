@@ -27,6 +27,9 @@ var utility = {
             if(err){
                 userCallback(null);
             }else{
+                if(user.image==""){
+                    user.image = env.app.default_profile;
+                }
                 userCallback(user);
             }
         });

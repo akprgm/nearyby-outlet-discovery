@@ -221,10 +221,7 @@ module.exports = {
                                                 let outlet_id = String(result.outlet_id);
                                                 let user_id = String(result.user_id);
                                                 let obj = {"user_id":user_id,"outlet_id":outlet_id}
-                                                console.log(obj);
                                                 utility.saveUserReviews(obj);
-                                            }else{
-                                                console.log(err);
                                             }
                                         });
                                     utility.successRequest(response);                            
@@ -366,10 +363,15 @@ module.exports = {
                                                 if(err){
                                                     commentDetailsCallback(err);
                                                 }else{
-                                                    value = value.toObject();
-                                                    value["user_name"] = user.name;
-                                                    value['user_image'] = (user.image)?(user.image):"defualt image";
-                                                    commentDetailsCallback(null,value);
+                                                    if(user){
+                                                        review.user_name = user.name;
+                                                        review.user_image = (user.image)?(user.image):"defualt image";
+                                                        reviewDetailCallback(null);
+                                                    }else{
+                                                        review.user_name = "";
+                                                        review.user_image = "";
+                                                        reviewDetailCallback(null);
+                                                    }
                                                 }
                                             });
                                         },function(err,reviewComment){
@@ -410,7 +412,11 @@ module.exports = {
                                     if(err){
                                         reviewDetailCallback(err);
                                     }else{
-                                        review.outlet_name = outlet.name;
+                                        if(outlet){
+                                            review.outlet_name = outlet.name;                                        
+                                        }else{
+                                            review.outlet_name = "";                                        
+                                        }
                                         reviewDetailCallback(null);
                                     }
                                 }); 
