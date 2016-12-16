@@ -23,18 +23,17 @@ var OUTLET = {
                 if(!bookMarks.length){
                     value.bookMark = false;
                 }
+                let flag = false;
                 async.map(bookMarks,function(bookmark,bookMarkCallBack){
-                    let flag = false;
                     if(JSON.stringify(bookmark.outlet_id) === JSON.stringify(value._id)){
                         value.bookMark = true;
                         flag = true;
-                        bookMarkCallBack(null);  
                     }else{
-                        value.bookMark = false;
+                        if(!flag){
+                            value.bookMark = false;                        
+                        }
                     }
-                    if(!flag){
-                        bookMarkCallBack(null);                    
-                    }
+                    bookMarkCallBack(null);  
                 });
                 valueCallBack(null,value);
             });

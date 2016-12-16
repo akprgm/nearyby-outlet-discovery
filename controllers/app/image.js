@@ -236,7 +236,7 @@ module.exports = {
             ImageCommentModel.find({"image_id":dataObject.image_id},{"user_id":1,"comment":1,"date":1},{"sort":{"date":-1},"limit":10,"skip":offset},function(err,imageComment){
                 if(err){
                     utility.internalServerError(response);
-                }else{  
+                }else if(!err && imageComment.length){  
                     //manipulating comment getting user pic and name
                     async.map(imageComment,function(value,commentDetailsCallback){
                         UserModel.findOne({"_id":value.user_id},{"name":1,"image":1},function(err,user){
@@ -260,6 +260,8 @@ module.exports = {
                             }
                         }
                     });
+                }else{
+                    utility.notFoundRequest(response);
                 }
             });
         }else{
