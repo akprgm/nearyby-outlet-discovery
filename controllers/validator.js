@@ -51,7 +51,7 @@ module.exports = {
         return Object.keys(obj).length !== 0;
     },
     validateLatitudeLongitude: function latLong(latitude,longitude){//this is for checking latitude and longitude 
-        if(typeof(latitude) == 'number' && typeof(longitude) == 'number'){
+        if(typeof(latitude) == 'number' && typeof(longitude) == 'number' && latitude>0 && longitude>0){
             return true;
         }else{
             return false;

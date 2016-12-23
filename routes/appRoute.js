@@ -168,5 +168,4 @@ router.post('/verifyToken',function(request,response){
 router.get('/testing',function(request,response){
     notify.test();
 });
-
 module.exports = router;

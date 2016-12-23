@@ -49,6 +49,17 @@ module.exports = {
                                 tags: outlet.tags,
                                 labels: outlet.labels
                             }
+                            let cover_image = obj.cover_image;
+                            let category = obj.category;
+                            let image_path = env.app.gallery_url+category+"/cover_images_1024/"+cover_image;
+                            let image_access_path = env.app.gallery_url+category+"/cover_images_1024/"+cover_image;
+                            utility.checkImage(image_path,image_access_path,function(new_image_url){
+                                if(new_image_url){
+                                    obj.cover_image = new_image_url;
+                                }else{
+                                    obj.cover_image = env.app.gallery_url+"/s.jpg";//default cover images 
+                                }
+                            });
                             switch(outlet.category){
                                 case 'book':
                                         obj.stm = {

@@ -3,8 +3,8 @@ module.exports = {
         port:5000,
         url: "http://139.59.9.219/node/",
         gallery_url: "http://139.59.9.219/public/assets/gallery",
-        default_profile: "http://localhost/public/images/default_profile.png",
-        public_directory: "http://localhost/public/",
+        default_profile: "http://139.59.9.219/public/images/default_profile.png",
+        public_directory: "http://139.59.9.219/public/",
         base_directory: "/home/faagio/faagioNode/",
         gallery_directory: "/var/www/html/public/assets/gallery/"
     },

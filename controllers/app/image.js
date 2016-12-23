@@ -28,7 +28,7 @@ module.exports = {
                     UserModel.update({"_id":dataObject.user_id},{"$inc":{"image_uploaded":1}},function(err,user){});
                     utility.successRequest(response);
                 }else{
-                    utility.internalServerError(response)
+                    utility.internalServerError(response);
                 }
             });
         }else{

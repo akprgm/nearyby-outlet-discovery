@@ -8,7 +8,7 @@ var utility = require('../utility');
 var OutletModel = mongoose.model('outlet');
 var BookMarkModel = mongoose.model('bookMark');
 var OUTLET = {
-    searchOutlets: function searchOutlets(query,user_id,response){
+    searchOutlets: function searchOutlets(query,user_id,latitude,longitude,response){
         async.waterfall([
             function(callback){
                 async.parallel([
@@ -37,7 +37,7 @@ var OUTLET = {
             function(result,callback){
                 var outlets = result[0];
                 var bookMarks = result[1];
-                OUTLET.checkOutlet(outlets,bookMarks,function(result){
+                OUTLET.checkOutlet(outlets,bookMarks,latitude,longitude,function(result){
                     callback(null,result);
                 });
             }
@@ -49,7 +49,7 @@ var OUTLET = {
             }
         });
     },
-    checkOutlet: function checkOutlet(outlets,bookMarks,checkCallback){
+    checkOutlet: function checkOutlet(outlets,bookMarks,latitude,longitude,checkCallback){
         async.map(outlets,function(value,valueCallBack){
             let cover_image = value.cover_image;
             let category = value.category;
@@ -61,6 +61,11 @@ var OUTLET = {
                 }else{
                     value.cover_image = env.app.gallery_url+"/s.jpg";
                 }
+                //finding distance for outlet
+                let outletLatitude = value.location[1];
+                let outletLongitude = value.location[0];
+                let distance = (6371*2*Math.asin(Math.sqrt(Math.pow(Math.sin((latitude - outletLatitude)*Math.PI/180/2),2) + Math.cos(latitude*Math.PI/180)*Math.cos(outletLatitude*Math.PI/180)*Math.pow(Math.sin((longitude -outletLongitude)*Math.PI/180/2),2))));
+                value.distance = distance;
                 if(!bookMarks){
                     value.bookMark = false;
                 }
@@ -99,7 +104,7 @@ var OUTLET = {
 }
 module.exports = {  
     searchString: function(dataObject, response){
-        if((validator.validateObjectId(dataObject.user_id)) && (typeof(dataObject.search_string) == 'string') && (validator.validateOffset(dataObject.offset))){
+        if((validator.validateObjectId(dataObject.user_id)) && (typeof(dataObject.search_string) == 'string') && (validator.validateOffset(dataObject.offset)) &&  validator.validateLatitudeLongitude(parseFloat(dataObject.latitude),parseFloat(dataObject.longitude))){
             async.waterfall([
                 function(callback){
                     async.parallel([
@@ -131,12 +136,13 @@ module.exports = {
                 function(result,callback){
                     var outlets = result[0];
                     var bookMarks = result[1];
-                    OUTLET.checkOutlet(outlets,bookMarks,function(result){
+                    OUTLET.checkOutlet(outlets,bookMarks,dataObject.latitude,dataObject.longitude,function(result){
                         callback(null,result);
                     });
                 }
             ],function(err,result){
                 if(err){
+                    console.log(err);
                     utility.internalServerError(response);
                 }else{
                     utility.successDataRequest(result,response);
@@ -147,7 +153,7 @@ module.exports = {
         }
     },
     filterSearch: function(dataObject,response){
-        if(validator.validateObjectId(dataObject.user_id) && (typeof(dataObject.search_string) == 'string') && (typeof(dataObject.category) == 'string') && validator.validateOffset(dataObject.offset)){
+        if(validator.validateObjectId(dataObject.user_id) && (typeof(dataObject.search_string) == 'string') && (typeof(dataObject.category) == 'string') && validator.validateOffset(dataObject.offset) &&  validator.validateLatitudeLongitude(parseFloat(dataObject.latitude),parseFloat(dataObject.longitude))){
             let category = dataObject.category;
             let offset = parseInt(dataObject.offset);
             let obj;
@@ -251,22 +257,22 @@ module.exports = {
                 case 'book':
                         match.$match.category = category;
                         query.push(match,project,sort,skip,limit);
-                        OUTLET.searchOutlets(query,dataObject.user_id,response);
+                        OUTLET.searchOutlets(query,dataObject.user_id,dataObject.latitude,dataObject.longitude,response);
                     break;
                 case 'cloth':
                         match.$match.category = category;
                         query.push(match,project,sort,skip,limit);
-                        OUTLET.searchOutlets(query,dataObject.user_id,response);                            
+                        OUTLET.searchOutlets(query,dataObject.user_id,dataObject.latitude,dataObject.longitude,response);                            
                     break;
                 case 'consumer':
                         match.$match.category = category;
                         query.push(match,project,sort,skip,limit);
-                        OUTLET.searchOutlets(query,dataObject.user_id,response);                            
+                        OUTLET.searchOutlets(query,dataObject.user_id,dataObject.latitude,dataObject.longitude,response);                            
                     break;
                 case 'watch':
                         match.$match.category = category;
                         query.push(match,project,sort,skip,limit);
-                        OUTLET.searchOutlets(query,dataObject.user_id,response);
+                        OUTLET.searchOutlets(query,dataObject.user_id,dataObject.latitude,dataObject.longitude,response);
                     break;
                 default:
                     utility.badRequest(response);

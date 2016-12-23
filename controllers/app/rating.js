@@ -15,11 +15,11 @@ var ReviewLikeModel = mongoose.model('reviewLike');
 var OutletModel = mongoose.model('outlet');
 module.exports = {
     reviewOutlet: function reviewOutlet(dataObject, response){//rate and review outlet
-        if(typeof(dataObject.star) == 'number' && validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id) && validator.validateCategory(dataObject.category)){
+        if(typeof(dataObject.star) == 'string' && validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id) && validator.validateCategory(dataObject.category)){
             let obj = {
                 user_id: dataObject.user_id,
                 outlet_id: dataObject.outlet_id,
-                star: dataObject.star,
+                star: parseInt(dataObject.star),
                 date: (new Date).getTime(),
                 category: dataObject.category
             }
@@ -181,7 +181,7 @@ module.exports = {
                     }
                 });
             }
-        }else{
+        }else{  
             utility.badRequest(response);
         }
     },
@@ -326,7 +326,7 @@ module.exports = {
                     utility.successDataRequest(reviews.slice(offset,offset+10),response);
                 }else{
                     let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
-                    ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"$and":[{"outlet_id":outlet_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.image":1}},{"$sort":{"date":-1}}],function(err,result){
+                    ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"$and":[{"outlet_id":outlet_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.image":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(err){
                             utility.internalServerError(response);
                         }else if(result.length>0){

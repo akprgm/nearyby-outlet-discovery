@@ -12,13 +12,13 @@ var OUTLET = {
         async.map(outlets,function(value,valueCallBack){
             let cover_image = value.cover_image;
             let category = value.category;
-            let image_path = env.app.gallery_url+category+"/cover_images/"+cover_image;
-            let image_access_path = env.app.gallery_url+category+"/cover_images/"+cover_image;            
+            let image_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;
+            let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;            
             utility.checkImage(image_path,image_access_path,function(new_image_url){
                 if(new_image_url){
                     value.cover_image = new_image_url;
                 }else{
-                    value.cover_image = env.app.gallery_url+"/s.jpg";
+                    value.cover_image = env.app.gallery_url+"/s.jpg";//default cover images 
                 }
                 if(!bookMarks.length){
                     value.bookMark = false;
@@ -57,7 +57,7 @@ var OUTLET = {
 }
 module.exports = {
     getNearOutlets: function getNearOutlets(dataObject, response){       
-        if(validator.validateObjectId(dataObject.user_id) && validator.validateLatitudeLongitude(parseFloat(dataObject)),parseFloat(dataObject.longitude)){
+        if(validator.validateObjectId(dataObject.user_id) && validator.validateLatitudeLongitude(parseFloat(dataObject.latitude),parseFloat(dataObject.longitude))){
             let location = [parseFloat(dataObject.longitude),parseFloat(dataObject.latitude)];
             let baseUrl = env.app.url;
             async.parallel([
@@ -124,7 +124,7 @@ module.exports = {
         }
     },
     getNearClothOutlets: function getNearClothOutlets(dataObject, response){
-        if((validator.validateObjectId(dataObject.user_id)) && (validator.validateLatitudeLongitude(parseFloat(dataObject.latitude)),parseFloat(dataObject.longitude)) && (typeof(parseFloat(dataObject.minDistance))=='number')){
+        if((validator.validateObjectId(dataObject.user_id)) && (validator.validateLatitudeLongitude(parseFloat(dataObject.latitude),parseFloat(dataObject.longitude))) && (typeof(parseFloat(dataObject.minDistance))=='number')){
             async.waterfall([
                 function(callback){
                     async.parallel([
@@ -173,7 +173,7 @@ module.exports = {
         }
     },
     getNearBookOutlets: function getNearBookOutlets(dataObject, response){
-      if((validator.validateObjectId(dataObject.user_id)) && (validator.validateLatitudeLongitude(parseFloat(dataObject.latitude)),parseFloat(dataObject.longitude)) && (typeof(parseFloat(dataObject.minDistance))=='number')){
+      if((validator.validateObjectId(dataObject.user_id)) && (validator.validateLatitudeLongitude(parseFloat(dataObject.latitude),parseFloat(dataObject.longitude))) && (typeof(parseFloat(dataObject.minDistance))=='number')){
             async.waterfall([
                 function(callback){
                     async.parallel([
@@ -222,7 +222,7 @@ module.exports = {
         }
     },
     getNearConsumerOutlets: function getNearConsumerOutlets(dataObject, response){
-        if((validator.validateObjectId(dataObject.user_id)) && (validator.validateLatitudeLongitude(parseFloat(dataObject.latitude)),parseFloat(dataObject.longitude)) && (typeof(parseFloat(dataObject.minDistance))=='number')){
+        if((validator.validateObjectId(dataObject.user_id)) && (validator.validateLatitudeLongitude(parseFloat(dataObject.latitude),parseFloat(dataObject.longitude))) && (typeof(parseFloat(dataObject.minDistance))=='number')){
             async.waterfall([
                 function(callback){
                     async.parallel([
@@ -271,7 +271,7 @@ module.exports = {
         }
     },
     getNearWatchOutlets: function getNearWatchOutlets(dataObject, response){
-        if((validator.validateObjectId(dataObject.user_id)) && (validator.validateLatitudeLongitude(parseFloat(dataObject.latitude)),parseFloat(dataObject.longitude)) && (typeof(parseFloat(dataObject.minDistance))=='number')){
+        if((validator.validateObjectId(dataObject.user_id)) && (validator.validateLatitudeLongitude(parseFloat(dataObject.latitude),parseFloat(dataObject.longitude))) && (typeof(parseFloat(dataObject.minDistance))=='number')){
             async.waterfall([
                 function(callback){
                     async.parallel([

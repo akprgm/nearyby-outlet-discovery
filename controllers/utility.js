@@ -130,7 +130,7 @@ module.exports = {
         let data = {
             user_id: user._id,
             name: user.name,
-            image: user.image,
+            image: (user.image)?user.image:env.app.default_profile,
             access_token: user.access_token,
             refresh_token: user.refresh_token,
             review: user.review,
@@ -146,7 +146,7 @@ module.exports = {
         let basicInfo = {
             user_id: user._id,
             name: user.name,
-            image: (user.image)?user.image:"default_user_pic.jpg"
+            image: (user.image)?user.image:env.app.default_profile
         }
         userBasicDataCallback(basicInfo);    
     },
@@ -286,7 +286,7 @@ module.exports = {
                     }else{
                         saveImagecallback(false);
                     }
-                })
+                });
             }else{
                 saveImagecallback(false);               
             }
@@ -301,7 +301,7 @@ module.exports = {
             let userReviewKey = dataObject.user_id+":reviews";
             let ReviewModel = mongoose.model('review');
             let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-            ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+            ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"review_id":"$_id","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                 if(!err && result){
                     module.exports.outletDefaultCoverImage(result);
                     module.exports.redisSaveKey(userReviewKey,JSON.stringify(result));
@@ -309,7 +309,7 @@ module.exports = {
             });
             let outletReviewKey = dataObject.outlet_id+":reviews";
             let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
-            ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"$and":[{"outlet_id":outlet_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id ","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.image":1}},{"$sort":{"date":-1}}],function(err,result){
+            ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"$and":[{"outlet_id":outlet_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.image":1}},{"$sort":{"date":-1}}],function(err,result){
                 if(!err && result){
                     module.exports.outletDefaultCoverImage(result);
                     module.exports.redisSaveKey(outletReviewKey,JSON.stringify(result));
