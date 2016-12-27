@@ -7,47 +7,24 @@ var utility = require('../utility');
 var env = require('../../env/development.js');
 var UserModel = mongoose.model('user');
 var USER = {
-    findIndex: function findIndex(arr,value,start,last,mstart,mlast){
-        if(mstart>=mlast/2){
-            return null;
-        }
-        let mid = parseInt((start + last)/2);
-        if(arr[mid].totalPoints > value.userActivities){
-            return findIndex(arr, value, mid, last, mstart++, mlast);
-        }else if(arr[mid].totalPoints < value.userActivities){
-            return findIndex(arr, value, start, mid, mstart++, mlast);
-        }else{
-            return mid;
-        }
-    },
-    findMatch: function findMatch(arr,index,user){
-        let found = false,foundIndex = -1,i;
-        for(i = index; i>=0 ; i--){
-            if(arr[i].totalPoints != user.userActivities){
-                break;
-            }else{
-                if((arr[i]._id).toString() === (user._id).toString()){
-                    foundIndex = i;                
-                    found = true;
-                    break;
-                }
-            }
-        }
-        if(!found){
-            for(i =index; i<arr.length; i++){
-                if(arr[i].totalPoints != user.userActivities){
-                    break;
+    findRank : function findRank(user_id,arrOfUser,rankCallback){
+            let i=0;
+            async.detect(arrOfUser,function(value,valueCallback){
+                if(String(value._id) == String(user_id)){
+                    console.log(value);
+                    valueCallback(null,true);
                 }else{
-                    if(arr[i]._id === user_id){
-                        foundIndex = i;
-                        found = true;
-                        break;
-                    }
+                    valueCallback(null,false);
                 }
-            }
+                i++;
+            },function(err,result){
+                if(!err && result){
+                    rankCallback(i);
+                }else{
+                    rankCallback(0);
+                }                
+            });
         }
-        return foundIndex;
-    }
 }
 module.exports = {
     userProfile: function userProfile(dataObject, response){
@@ -130,7 +107,7 @@ module.exports = {
             async.parallel([
                 function(callback){
                     let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-                    UserModel.aggregate([{"$match":{"_id":user_id}},{"$project":{"_id":1,"rating":1,"review":1,"check_in":1,"userActivities":{"$add":["$rating","$review","$check_in"]}}}],function(err,result){
+                    UserModel.aggregate([{"$match":{"_id":user_id}},{"$project":{"_id":1,"rating":1,"review":1,"check_in":1,"image_uploaded":1,"userActivities":{"$add":["$rating","$review","$check_in"]}}}],function(err,result){
                         if(!err && result.length>0){
                             callback(null, result[0]);
                         }else{
@@ -150,12 +127,9 @@ module.exports = {
             ],function(err,result){
                 if(!err && result.length>0){
                     if(result[0]){
-                        let index = USER.findIndex(result[1],result[0],0,result[1].length-1,0,parseInt(Math.log(result[1].length)));                    
-                        if(index != null){
-                            var Rank = USER.findMatch(result[1],index,result[0]);
+                        USER.findRank(result[0]._id,result[1],function(Rank){
                             if(Rank>=0){
                                 let points = env.ranking.ratingPoint*result[0].rating + env.ranking.checkInPoint*result[0].check_in + env.ranking.reviewPoint*result[0].review; 
-                              
                                 let levelLength = env.ranking.levels.length;
                                 let i;
                                 for(i=1; i<levelLength; i++){//finding user level
@@ -182,20 +156,22 @@ module.exports = {
                                     user_rank: Rank+1,
                                     level: user_level,
                                     title: title,
+                                    review: result[0].review,
+                                    rating: result[0].rating,
                                     next_level_points: env.ranking.levels[i+1]
                                 }
                                 utility.successDataRequest(ob,response);                 
                             }else{
                                 utility.internalServerError(response);
                             }
-                        }else{
-                            utility.badRequest(response);
-                        }                
+                        });               
                     }else{
                         let ob = {
                             user_points: 0,
                             level_points: 150,
                             user_rank: 0,
+                            "reviews": 0,
+                            "ratings": 0,
                             level: "",
                             title: "",
                             next_level_points: 300

@@ -14,7 +14,8 @@ var outlet = require('../controllers/app/outlet');
 var search = require('../controllers/app/search');
 var filter = require('../controllers/app/filter');
 var newsFeed = require('../controllers/app/newsFeed');
-var notify = require('../controllers/notification.js');
+var report = require('../controllers/app/report');
+var notify = require('../controllers/notification');
 var router = Express.Router();
 router.post('/login',function(request,response){//route for login user
     auth.login(request.body,response);
@@ -124,6 +125,9 @@ router.get('/imageDetails',function(request,response){
 router.get('/bookMarkOutlet',function(request,response){//route for bookmarking a outlet 
     bookMark.bookMarkOutlet(request.query,response);
 });
+router.post('/bookMarkOutlet',function(request,response){//route for bookmarking a outlet 
+    bookMark.bookMarkOutlet(request.body,response);
+});
 router.get('/getUserBookMarks',function(request,response){//route for getting user bookmarks
     bookMark.getBookMarks(request.query,response);
 });
@@ -134,7 +138,7 @@ router.get('/getUserCheckIns',function(request,response){//route for getting all
     checkIn.getUserCheckIns(request.query,response);
 });
 router.post('/uploadImages',function(request,response){//route for getting all userCheckins
-    image.uploadImage(request.body,response);
+    image.uploadImage(request.query,response);
 });
 router.get('/likeImage',function(request,response){//route for liking review
     image.likeImage(request.query,response);
@@ -156,6 +160,12 @@ router.get('/filter',function(request,response){
 });
 router.get('/newsFeed',function(request,response){
     newsFeed.newsFeed(request.query,response);
+});
+router.get('/reportError',function(request,response){
+    report.reportError(request.query,response);
+});
+router.get('/reportShutdown',function(request,response){
+    report.reportShutdown(request.query,response);
 });
 router.post('/getToken',function(request,response){//route for getting new token when old expires
     auth.getToken(request.body,response)

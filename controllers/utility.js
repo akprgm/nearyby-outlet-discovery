@@ -288,7 +288,51 @@ module.exports = {
                     }
                 });
             }else{
-                saveImagecallback(false);               
+                 async.parallel([
+                    function(imageCallback){
+                        gm(imageBuff).write(imagePathOriginal,function(err){
+                            if(err){
+                                fs.writeFileSync(imagePathOriginal,imageBuff);
+                            }
+                            module.exports.checkImage(imagePathOriginal,true,function(value){
+                                imageCallback(null,value);
+                            });
+                        });
+                    },
+                    function(imageCallback){
+                        gm(imageBuff).resize(null,1024).write(imagePath1024,function(err){
+                            if(err){
+                                fs.writeFileSync(imagePathOriginal,imageBuff);
+                            }
+                            module.exports.checkImage(imagePath1024,true,function(value){
+                                imageCallback(null,value);
+                            });
+                        });
+                    },
+                    function(imageCallback){
+                        gm(imageBuff).resize(null,500).write(imagePath500,function(err){
+                            if(err){
+                                fs.writeFileSync(imagePathOriginal,imageBuff);
+                            }
+                            module.exports.checkImage(imagePath500,true,function(value){
+                                imageCallback(null,value);
+                            });
+                        });
+                    }
+                ],function(err,result){
+                    if(!err && result[0] && result[1] && result[2]){
+                        let image = new ImageModel(imageObject);
+                        image.save(function(err,result){
+                            if(!err && result){
+                                saveImagecallback(result._id);                            
+                            }else{
+                                saveImagecallback(false);
+                            }
+                        })
+                    }else{
+                        saveImagecallback(false);
+                    }
+                });
             }
         });
     },

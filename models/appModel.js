@@ -150,6 +150,7 @@ var errorReportSchema = new Schema({
     labels: {type:Boolean, required:true, default:false},
     reviews: {type:Boolean, required:true, default:false},
     tags: {type:Boolean, required:true, default:false},
+    msg: {type:String,rquired:true},
     date: {type:Number, required:true}
 },{ collection: 'errorReports' });
 var shutdownReportSchema = new Schema({
@@ -158,6 +159,9 @@ var shutdownReportSchema = new Schema({
     category: {type:String, requsired:true, enum:["book","cloth","consumer","watch"]},
     date: {type:Number, required:true}        
 },{ collection: 'shutdownReports' });
+var referralSchema = new Schema({
+
+},{collection:'referrals'})
 mongoose.model('user',userSchema);
 mongoose.model('outlet',outletSchema);
 mongoose.model('rating',ratingSchema);

@@ -7,7 +7,7 @@ var request = require('request');
 var validator = require('../validator');
 var utility = require('../utility');
 var env = require('../../env/development');
-var UserModel = mongoose.model('rating');
+var UserModel = mongoose.model('user');
 var RatingModel = mongoose.model('rating');
 var ReviewModel = mongoose.model('review');
 var ReviewCommentModel = mongoose.model('reviewComment');
@@ -135,7 +135,8 @@ module.exports = {
                         function(callback){
                             review.save(function(err,result){
                                 if(!err && result){//find user Reviews and store them in redis cache
-                                    UserModel.update({"_id":dataObject.user_id},{"$inc":{"reviews":1}},function(err,user){});
+                                    UserModel.update({"_id":dataObject.user_id},{"$inc":{"review":1}},function(err,user){
+                                    });
                                     utility.saveUserReviews(dataObject);
                                     callback(null,true);
                                 }else{
