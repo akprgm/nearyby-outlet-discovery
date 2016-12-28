@@ -57,12 +57,12 @@ module.exports = {
                     });
                 },
                 function(callback){//getting user checkins
-                    var checkInUrl = env.app.url+"getCheckIns?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id+"&offset="+dataObject.offset;;
+                    var checkInUrl = env.app.url+"getUserCheckIns?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id+"&offset="+dataObject.offset;;
                     request(checkInUrl,function(err,res,body){
                         if(!err && res.statusCode ==200){
                             let data = JSON.parse(body);
                             callback(null,data.message);                    
-                        }else if(!err && res.statusCode ==204){
+                        }else if(!err && res.statusCode==204){
                             callback(null, new Array());
                         }else{
                             callback(null);
@@ -70,7 +70,17 @@ module.exports = {
                     });
                 },
                 function(callback){//getting user pics
-                    callback(null,new Array());
+                    var userPicsUrl = env.app.url+"getUserPics?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id+"&offset="+dataObject.offset;;
+                    request(userPicsUrl,function(err,res,body){
+                        if(!err && res.statusCode ==200){
+                            let data = JSON.parse(body);
+                            callback(null,data.message);                    
+                        }else if(!err && res.statusCode==204){
+                            callback(null, new Array());
+                        }else{
+                            callback(null);
+                        }
+                    });
                 },
                 function(callback){//getting basic user info
                     var userInfoUrl = env.app.url+"userInfo?access_token="+dataObject.access_token+"&user_id="+dataObject.user_id;

@@ -1,7 +1,7 @@
 module.exports = {
     app:{
         port:5000,
-        url: "http://139.59.9.219/node/",
+        url: "http://localhost/node/",
         gallery_url: "http://139.59.9.219/public/assets/gallery",
         default_profile: "http://139.59.9.219/public/images/default_profile.png",
         public_directory: "http://139.59.9.219/public/",

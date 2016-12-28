@@ -102,22 +102,23 @@ module.exports = {
                                     break;
                                 default:
                             }
-
-                            //getting outlet reviews and images 
-                            async.parallel([
+                            async.parallel([//getting outlet reviews
                                 function(callback2){
                                     let outletReviewUrl = env.app.url+"getOutletReviews?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id+"&offset=0";
+                                    console.log(outletReviewUrl);
                                     request(outletReviewUrl,function(err,res,body){
                                         if(!err && res.statusCode==200){
                                             let data = JSON.parse(body);
+                                            console.log(data);
                                             obj.reviews = (data.message).slice(0,2);    
                                         }else{
+                                            console.log(res.statusCode);
                                             obj.reviews = new Array();
                                         }
                                         callback2();                            
                                     });
                                 },
-                                function(callback2){
+                                function(callback2){//getting outlet images 
                                     let outletImageUrl = env.app.url+"getOutletImages?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id+"&offset=0";
                                     request(outletImageUrl,function(err,res,body){
                                         if(!err && res.statusCode==200){

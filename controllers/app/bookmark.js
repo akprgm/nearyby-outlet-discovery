@@ -32,8 +32,9 @@ module.exports = {
                         if(!err && result){
                             BookMarkModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1}},{"$sort":{"date":-1}}],function(err,result){
                                 if(!err && result){
+                                    console.log(result);
                                     utility.redisSaveKey(bookMarkKey,JSON.stringify(result));
-                                }else{}
+                                }
                             });
                             utility.successRequest(response);
                         }else{
