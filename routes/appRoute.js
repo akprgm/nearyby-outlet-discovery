@@ -16,6 +16,7 @@ var filter = require('../controllers/app/filter');
 var newsFeed = require('../controllers/app/newsFeed');
 var report = require('../controllers/app/report');
 var notify = require('../controllers/notification');
+var referral = require('../controllers/app/referral');
 var router = Express.Router();
 router.post('/login',function(request,response){//route for login user
     auth.login(request.body,response);
@@ -167,6 +168,9 @@ router.get('/reportError',function(request,response){
 router.get('/reportShutdown',function(request,response){
     report.reportShutdown(request.query,response);
 });
+router.get('/referral',function(request,response){
+    referral.referred(request.query,response);
+})
 router.post('/getToken',function(request,response){//route for getting new token when old expires
     auth.getToken(request.body,response)
 });

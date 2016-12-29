@@ -81,9 +81,9 @@ module.exports = {
         }
         return ;
     },
-     /*@Desc : finding outlet from mongo using outlet document id 
-        * @Param : outlet document id
-        * @Return : outlet document
+     /*@Desc : this will expire the redis key 
+        * @Param : key
+        * @Return : 
     */
     redisSetExpireTime: function expireKeyTime(key){//this will reset the expire time of key in redis
         key = key.toString();
@@ -347,16 +347,125 @@ module.exports = {
             let user_id = mongoose.Types.ObjectId(dataObject.user_id);
             ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"review_id":"$_id","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                 if(!err && result){
-                    module.exports.outletDefaultCoverImage(result);
-                    module.exports.redisSaveKey(userReviewKey,JSON.stringify(result));
+                    async.parallel([
+                        function(reviewCallback){
+                            async.map(result,function(value,reviewImageCallback){
+                                let review_id = mongoose.Types.ObjectId(dataObject.review_id);
+                                ImageModel.aggregate([{"$match":{"review_id":review_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,images){
+                                    if(!err && images){
+                                        let photos = new Array();
+                                        async.each(images,function(value,checkImageCallback){
+                                            utility.checkOutletImage(value.image,value.category,500,function(image){
+                                                photos.push(value);
+                                                checkImageCallback();
+                                            });
+                                        },function(err){
+                                            if(!err){
+                                                value.photos = photos;
+                                                reviewImageCallback(null);                                               
+                                            }else{
+                                                reviewImageCallback(err);
+                                            }
+                                        });
+                                    }else{
+                                        reviewImageCallback(err);
+                                    }
+                                });
+                            },function(err,result){
+                                if(err){
+                                    reviewCallback(err);
+                                }else{
+                                    reviewCallback(null);
+                                }
+                                
+                            })
+                        },function(reviewCallback){
+                            async.map(result,function(value,reviewLikeCallback){
+                                ReviewLikeModel.find({"review_id":value.review_id},function(err,reviewLike){
+                                    if(err){
+                                        reviewLikeCallback(err);
+                                    }else{
+                                        value.liked = true;
+                                        reviewLikeCallback(null);
+                                    }
+                                })
+                            },function(err,result){
+                                if(err){
+                                    reviewCallback(err);
+                                }else{
+                                    reviewCallback(null);
+                                }
+                            });
+                        }
+                    ],function(err,result){
+                        if(!err){
+                            module.exports.outletDefaultCoverImage(result);
+                            module.exports.redisSaveKey(userReviewKey,JSON.stringify(result));
+                        }
+                    });
+                   
                 }
             });
             let outletReviewKey = dataObject.outlet_id+":reviews";
             let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
             ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"$and":[{"outlet_id":outlet_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.image":1}},{"$sort":{"date":-1}}],function(err,result){
                 if(!err && result){
-                    module.exports.outletDefaultCoverImage(result);
-                    module.exports.redisSaveKey(outletReviewKey,JSON.stringify(result));
+                    async.parallel([
+                        function(reviewCallback){
+                            async.map(result,function(value,reviewImageCallback){
+                                let review_id = mongoose.Types.ObjectId(dataObject.review_id);
+                                ImageModel.aggregate([{"$match":{"review_id":review_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,images){
+                                    if(!err && images){
+                                        let photos = new Array();
+                                        async.each(images,function(value,checkImageCallback){
+                                            utility.checkOutletImage(value.image,value.category,500,function(image){
+                                                photos.push(value);
+                                                checkImageCallback();
+                                            });
+                                        },function(err){
+                                            if(!err){
+                                                value.photos = photos;
+                                                reviewImageCallback(null);                                               
+                                            }else{
+                                                reviewImageCallback(err);
+                                            }
+                                        });
+                                    }else{
+                                        reviewImageCallback(err);
+                                    }
+                                });
+                            },function(err,result){
+                                if(err){
+                                    reviewCallback(err);
+                                }else{
+                                    reviewCallback(null);
+                                }
+                                
+                            })
+                        },function(reviewCallback){
+                            async.map(result,function(value,reviewLikeCallback){
+                                ReviewLikeModel.find({"review_id":value.review_id},function(err,reviewLike){
+                                    if(err){
+                                        reviewLikeCallback(err);
+                                    }else{
+                                        value.liked = true;
+                                        reviewLikeCallback(null);
+                                    }
+                                })
+                            },function(err,result){
+                                if(err){
+                                    reviewCallback(err);
+                                }else{
+                                    reviewCallback(null);
+                                }
+                            });
+                        }
+                    ],function(err,result){
+                        if(!err){
+                            module.exports.outletDefaultCoverImage(result);
+                            module.exports.redisSaveKey(outletReviewKey,JSON.stringify(result));
+                        }
+                    });
                 }
             });
         }

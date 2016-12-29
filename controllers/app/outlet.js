@@ -109,10 +109,8 @@ module.exports = {
                                     request(outletReviewUrl,function(err,res,body){
                                         if(!err && res.statusCode==200){
                                             let data = JSON.parse(body);
-                                            console.log(data);
                                             obj.reviews = (data.message).slice(0,2);    
                                         }else{
-                                            console.log(res.statusCode);
                                             obj.reviews = new Array();
                                         }
                                         callback2();                            

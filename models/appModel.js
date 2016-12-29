@@ -156,12 +156,22 @@ var errorReportSchema = new Schema({
 var shutdownReportSchema = new Schema({
     outlet_id: {type:mongoose.Schema.Types.ObjectId, required:true},
     user_id: {type:mongoose.Schema.Types.ObjectId, required:true},
-    category: {type:String, requsired:true, enum:["book","cloth","consumer","watch"]},
+    category: {type:String, required:true, enum:["book","cloth","consumer","watch"]},
     date: {type:Number, required:true}        
 },{ collection: 'shutdownReports' });
+var campaignSchema = new Schema({
+    name: {type:String, required:true},
+    email: {type:String, required:true},
+    type: {type:String, required:true},
+    referral_code: {type:String, required:true},
+    date: {type:Number, required:true}
+},{collection:'campaigns'});
 var referralSchema = new Schema({
-
-},{collection:'referrals'})
+    user_id: {type:String, required:true},
+    device_id: {type:String, required:true},
+    referral_code: {type:String, required:true},
+    date: {type:Number, required:true}
+},{collection:'referrals'});
 mongoose.model('user',userSchema);
 mongoose.model('outlet',outletSchema);
 mongoose.model('rating',ratingSchema);
@@ -175,5 +185,7 @@ mongoose.model('imageComment',imageCommentSchema);
 mongoose.model('imageLike',imageLikeSchema);
 mongoose.model('errorReport',errorReportSchema);
 mongoose.model('shutdownReport',shutdownReportSchema);
+mongoose.model('campaign',campaignSchema);
+mongoose.model('referral',referralSchema);
 
     
