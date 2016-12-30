@@ -139,7 +139,7 @@ router.get('/getUserCheckIns',function(request,response){//route for getting all
     checkIn.getUserCheckIns(request.query,response);
 });
 router.post('/uploadImages',function(request,response){//route for getting all userCheckins
-    image.uploadImage(request.query,response);
+    image.uploadImage(request.body,response);
 });
 router.get('/likeImage',function(request,response){//route for liking review
     image.likeImage(request.query,response);
@@ -171,6 +171,9 @@ router.get('/reportShutdown',function(request,response){
 router.get('/referral',function(request,response){
     referral.referred(request.query,response);
 })
+router.get('/feedback',function(request,response){
+    user.feedback(request.query,response);
+});
 router.post('/getToken',function(request,response){//route for getting new token when old expires
     auth.getToken(request.body,response)
 });

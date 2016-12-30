@@ -172,6 +172,11 @@ var referralSchema = new Schema({
     referral_code: {type:String, required:true},
     date: {type:Number, required:true}
 },{collection:'referrals'});
+var feedback = new Schema({
+    user_id: {type:String, required:true},
+    feedback: {type: String, required: true},
+    date: {type:Number, required:true}
+},{collection:'feedbacks'});
 mongoose.model('user',userSchema);
 mongoose.model('outlet',outletSchema);
 mongoose.model('rating',ratingSchema);
@@ -187,5 +192,6 @@ mongoose.model('errorReport',errorReportSchema);
 mongoose.model('shutdownReport',shutdownReportSchema);
 mongoose.model('campaign',campaignSchema);
 mongoose.model('referral',referralSchema);
+mongoose.model('feedback',feedback);
 
     

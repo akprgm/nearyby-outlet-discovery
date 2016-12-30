@@ -114,7 +114,7 @@ module.exports = {
                 if(!err && result){ 
                     async.each(result,function(value,callback){
                         utility.checkOutletImage(value.image,value.category,500,function(image){
-                            value.image= image;
+                            value.image = image;
                             callback();
                         });
                     },function(err){

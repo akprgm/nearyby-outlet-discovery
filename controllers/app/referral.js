@@ -6,7 +6,7 @@ var utility = require('../utility');
 var campaignModel = mongoose.model('campaign');
 var referralModel = mongoose.model('referral');
 module.exports = {
-    refered : function refered(dataObject,response){
+    referred : function referred(dataObject,response){
         if(validator.validateObjectId(dataObject.user_id) && typeof(dataObject.device_id)=='string' && typeof(dataObject.referral_code)=='string'){
             async.waterfall([
                 function(referralCallback){
@@ -14,9 +14,9 @@ module.exports = {
                         if(err){
                             referralCallback(err);
                         }else if(result){
-                            referralCallback(null,true);
+                            referralCallback(null,result);
                         }else{
-                            referralCallback(null,false);
+                            referralCallback(null,result);
                         }
                     });
                 },
@@ -26,7 +26,7 @@ module.exports = {
                             if(err){
                                 referralCallback(err);
                             }else if(!err && result){
-                                referralCallback(null,false);
+                                referralCallback(null,1);
                             }else{
                                 let obj = {
                                     user_id: dataObject.user_id,
@@ -37,24 +37,30 @@ module.exports = {
                                 let referral = new referralModel(obj);
                                 referral.save(function(err,result){
                                     if(err){
-                                        referralCallback(null,false);                                            
+                                        referralCallback(err);                                            
                                     }else if(!err && result){
-                                        referralCallback(null,true);
+                                        referralCallback(null,2);
                                     }
                                 });
                             }
                         });
                     }else{
-                        referralCallback(null);
+                        referralCallback(null,3);
                     }
                 }
             ],function(err,result){
                 if(err){
                     utility.internalServerError(response);
                 }else if(!err && result){
-                    utility.successRequest(response);
-                }else{
-                    utility.conflictRequest(response);
+                    let obj ={ "status":true}
+                    if(result == 1){
+                        obj.message = "Referral code already redeemed";
+                    }else if(result == 2){
+                        obj.message = "Referral code successfully redeemed";
+                    }else{
+                        obj.message = "This referral code no longer valid";
+                    }
+                    response.send(obj);
                 }
             });
         }else{

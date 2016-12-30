@@ -6,6 +6,7 @@ var validator = require('../validator');
 var utility = require('../utility');
 var env = require('../../env/development.js');
 var UserModel = mongoose.model('user');
+var FeedbackModel = mongoose.model('feedback');
 var USER = {
     findRank : function findRank(user_id,arrOfUser,rankCallback){
             let i=0;
@@ -228,6 +229,25 @@ module.exports = {
                             utility.internalServerError(response);
                         }      
                     });       
+                }
+            });
+        }else{
+            utility.badRequest(response);
+        }
+    },
+    feedback: function feedback(dataObject, response){
+        if(validator.validateObjectId(dataObject.user_id) && typeof(dataObject.feedback) == 'string'){
+             let obj = {
+                user_id: dataObject.user_id,
+                feedback: dataObject.feedback,
+                date: (new Date).getTime(),
+            }
+            let feedback = new FeedbackModel(obj);
+            feedback.save(function(err,result){
+                if(err){
+                    utility.internalServerError(response);
+                }else{
+                    utility.successRequest(response);
                 }
             });
         }else{

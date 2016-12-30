@@ -13,7 +13,7 @@ module.exports = {
     },
     validatePassword: function password(password){//this is for validating password
         if(typeof(password) == 'string'){
-            var regex = new RegExp(/[A-Za-z]\w{7,15}$/);
+            var regex = new RegExp(/[A-Za-z0-9]\w{7,15}$/);
             if(regex.test(password)){
                 return true;
             }else{

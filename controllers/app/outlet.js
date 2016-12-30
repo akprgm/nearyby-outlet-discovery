@@ -105,7 +105,6 @@ module.exports = {
                             async.parallel([//getting outlet reviews
                                 function(callback2){
                                     let outletReviewUrl = env.app.url+"getOutletReviews?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id+"&offset=0";
-                                    console.log(outletReviewUrl);
                                     request(outletReviewUrl,function(err,res,body){
                                         if(!err && res.statusCode==200){
                                             let data = JSON.parse(body);
@@ -117,7 +116,7 @@ module.exports = {
                                     });
                                 },
                                 function(callback2){//getting outlet images 
-                                    let outletImageUrl = env.app.url+"getOutletImages?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id+"&offset=0";
+                                    let outletImageUrl = env.app.url+"getOutletPics?access_token="+dataObject.access_token+"&outlet_id="+dataObject.outlet_id+"&offset=0";
                                     request(outletImageUrl,function(err,res,body){
                                         if(!err && res.statusCode==200){
                                             let data = JSON.parse(body);

@@ -201,8 +201,8 @@ module.exports = {
         * @Return : outlet document
     */
     checkOutletImage: function checkOutletImage(image,category,size,checkOutletImageCallback){
-        let image_path = env.app.gallery_directory+"/"+category+"/gallery/images_"+size+"/"+image;
-        let image_access_path = env.app.gallery_url+"/"+category+"/gallery/images_"+size+"/"+image;
+        let image_path = env.app.gallery_directory+category+"/gallery/images_"+size+"/"+image;
+        let image_access_path = env.app.gallery_url+category+"/gallery/images_"+size+"/"+image;
         console.log(image_path);
         module.exports.checkImage(image_path,image_access_path,function(value){
             checkOutletImageCallback(value);
@@ -397,7 +397,7 @@ module.exports = {
                                 }
                             });
                         }
-                    ],function(err,result){
+                    ],function(err){
                         if(!err){
                             module.exports.outletDefaultCoverImage(result);
                             module.exports.redisSaveKey(userReviewKey,JSON.stringify(result));
@@ -460,7 +460,7 @@ module.exports = {
                                 }
                             });
                         }
-                    ],function(err,result){
+                    ],function(err){
                         if(!err){
                             module.exports.outletDefaultCoverImage(result);
                             module.exports.redisSaveKey(outletReviewKey,JSON.stringify(result));
