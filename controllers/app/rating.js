@@ -276,7 +276,7 @@ module.exports = {
                     utility.successDataRequest(ratings.slice(offset,offset+10),response);
                 }else{
                     let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-                    RatingModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"review":{"$eq":""}},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                    RatingModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(err){
                             utility.internalServerError(response);
                         }else if(result.length>0){
@@ -391,7 +391,6 @@ module.exports = {
                             async.parallel([
                                 function(reviewCallback){
                                     async.map(result,function(value,reviewImageCallback){
-                                        console.log(value);
                                         if(!value.user_info[0].image){
                                             value.user_info[0].image = env.app.default_profile;
                                         }
@@ -570,20 +569,21 @@ module.exports = {
                             if(err){
                                 commentDetailsCallback(err);
                             }else{
+                                value = value.toJSON();
                                 if(user){
                                     value.user_name = user.name;
-                                    value.user_image = (user.image)?(user.image):"defualt image";
-                                    commentDetailsCallback(null);
+                                    value.user_image = (user.image)?(user.image):env.app.default_profile;
+                                    commentDetailsCallback(null,value);
                                 }else{
                                     value.user_name = "";
                                     value.user_image = "";
-                                    commentDetailsCallback(null);
+                                    commentDetailsCallback(null,value);
                                 }
                             }
                         });
                     },function(err,reviewComment){
                         if(err){
-                            utility.internalServerError();
+                            utility.internalServerError(response);
                         }else{
                             if(reviewComment.length){
                                 utility.successDataRequest(reviewComment,response);                            

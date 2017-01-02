@@ -61,7 +61,7 @@ module.exports = {
                                 imageIdsCallback(null);
                             },function(err){
                                 if(!err){
-                                    ImageModel.find({"$and":[{"_id":{"$nin":ImageIds}},timeObj]},{"date":1},sortObj,function(err,result){
+                                    ImageModel.find({"$and":[{"_id":{"$nin":ImageIds}},timeObj]},{"date":1,"category":1},sortObj,function(err,result){
                                         if(!err && result){
                                             feedTimeCallback(null,result[0]);
                                         }else{
@@ -206,7 +206,7 @@ module.exports = {
                                         },
                                         function(imagesArray,callback){
                                             match.$match ={"$and":[{"user_id":{"$ne":0}},{"_id":{"$nin":imagesArray}},timeBet]};
-                                            project.$project = {"_id":0,"image_id":"$_id","image":1,"date":-1}
+                                            project.$project = {"_id":0,"image_id":"$_id","category":1,"image":1,"date":-1}
                                             sort.$sort = {"date":-1};
                                             limit.$limit = limitConstant;
                                             query = new Array();
@@ -214,8 +214,21 @@ module.exports = {
                                             ImageModel.aggregate(query,function(err,result){
                                                 if(!err && result){
                                                     if(result.length){
-                                                        FinalResult = FinalResult.concat(result);
-                                                        callback(null);                                        
+                                                        async.each(result,function(value,checkCallback){
+                                                            utility.checkOutletImage(value.image,value.category,1024,function(image){
+                                                                value.image = image;
+                                                            })
+                                                            checkCallback(null);
+                                                        },function(err){
+                                                            if(err){
+                                                                callback(err);
+                                                            }else{
+                                                                FinalResult = FinalResult.concat(result);
+                                                                callback(null);
+                                                            }
+                                                        });
+                                                        //FinalResult = FinalResult.concat(result);
+                                                        //callback(null);                                        
                                                     }else{
                                                         callback(null);                                        
                                                     }
