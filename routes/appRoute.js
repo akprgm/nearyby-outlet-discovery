@@ -17,6 +17,7 @@ var newsFeed = require('../controllers/app/newsFeed');
 var report = require('../controllers/app/report');
 var notify = require('../controllers/notification');
 var referral = require('../controllers/app/referral');
+var slider = require('../controllers/app/slider');
 var router = Express.Router();
 router.post('/login',function(request,response){//route for login user
     auth.login(request.body,response);
@@ -181,6 +182,9 @@ router.post('/verifyToken',function(request,response){
     utility.verifyToken(request.body.access_token,'access',response,function(){
         response.send("token valid");
     });
+});
+router.get('/slider',function(request,response){
+    slider.sliderFun(response);
 });
 router.get('/testing',function(request,response){
     notify.test();

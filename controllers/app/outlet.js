@@ -38,6 +38,7 @@ module.exports = {
                             var obj = {
                                 name: outlet.name,
                                 cover_image: outlet.cover_image,
+                                category: outlet.category,
                                 address: outlet.address,
                                 star: outlet.star,
                                 rating: outlet.rating,
@@ -51,13 +52,13 @@ module.exports = {
                             }
                             let cover_image = obj.cover_image;
                             let category = obj.category;
-                            let image_path = env.app.gallery_url+category+"/cover_images_1024/"+cover_image;
-                            let image_access_path = env.app.gallery_url+category+"/cover_images_1024/"+cover_image;
+                            let image_path = env.app.gallery_directory+category+"/cover_images_full/"+cover_image;
+                            let image_access_path = env.app.gallery_url+category+"/cover_images_full/"+cover_image;
                             utility.checkImage(image_path,image_access_path,function(new_image_url){
                                 if(new_image_url){
                                     obj.cover_image = new_image_url;
                                 }else{
-                                    obj.cover_image = env.app.gallery_url+"/s.jpg";//default cover images 
+                                    obj.cover_image = env.app.gallery_url+"s.jpg";//default cover images 
                                 }
                             });
                             switch(outlet.category){

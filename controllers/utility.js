@@ -215,13 +215,13 @@ module.exports = {
         async.forEachOf(result,function(value,key,callback){
             let cover_image = value.outlet_info[0].cover_image;
             let category = value.outlet_info[0].category;
-            let image_path = env.app.gallery_url+category+"/cover_images/"+cover_image;
+            let image_path = env.app.gallery_directory+category+"/cover_images/"+cover_image;
             let image_access_path = env.app.gallery_url+category+"/cover_images/"+cover_image;            
             module.exports.checkImage(image_path,image_access_path,function(image_name){
                 if(image_name){
                     value.outlet_info[0].cover_image = image_name;
                 }else{
-                    value.outlet_info[0].cover_image = env.app.gallery_url + "/s.jpg";
+                    value.outlet_info[0].cover_image = env.app.gallery_url + "s.jpg";
                 }
             });
         },function(err){

@@ -344,8 +344,13 @@ module.exports = {
                                             if(err){
                                                 reviewLikeCallback(err);
                                             }else{
-                                                value.liked = true;
-                                                reviewLikeCallback(null);
+                                                if(reviewLike.length){
+                                                    value.liked = true;
+                                                    reviewLikeCallback(null);
+                                                }else{
+                                                    value.liked = false;
+                                                    reviewLikeCallback(null);
+                                                }
                                             }
                                         })
                                     },function(err,result){
@@ -429,8 +434,13 @@ module.exports = {
                                             if(err){
                                                 reviewLikeCallback(err);
                                             }else{
-                                                value.liked = true;
-                                                reviewLikeCallback(null);
+                                                if(reviewLike.length){
+                                                    value.liked = true;
+                                                    reviewLikeCallback(null);
+                                                }else{
+                                                    value.liked = false;
+                                                    reviewLikeCallback(null);
+                                                }
                                             }
                                         })
                                     },function(err,result){
@@ -509,7 +519,7 @@ module.exports = {
                                         }else{ 
                                             if(user){
                                                 review.user_name = user.name;
-                                                review.user_image = (user.image)?(user.image):"defualt image";
+                                                review.user_image = (user.image)?(user.image):env.app.default_profile;
                                                 reviewDetailCallback(null);
                                             }else{
                                                 review.user_name = "";
@@ -537,7 +547,23 @@ module.exports = {
                                         reviewDetailCallback(null);
                                     }
                                 }); 
+                            },
+                            function(reviewDetailCallback){
+                                ReviewLikeModel.find({"review_id":review._id},function(err,reviewLike){
+                                    if(err){
+                                        reviewDetailCallback(err);
+                                    }else{
+                                        if(reviewLike.length){
+                                            review.liked = true;
+                                            reviewDetailCallback(null);
+                                        }else{
+                                            review.liked = false;
+                                            reviewDetailCallback(null);
+                                        }
+                                    }
+                                });
                             }
+
                         ],function(err,result){
                             if(err){
                                 utility.internalServerError(response);

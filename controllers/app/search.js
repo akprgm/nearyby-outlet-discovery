@@ -53,8 +53,8 @@ var OUTLET = {
         async.map(outlets,function(value,valueCallBack){
             let cover_image = value.cover_image;
             let category = value.category;
-            let image_path = env.app.gallery_url+category+"/cover_images/"+cover_image;
-            let image_access_path = env.app.gallery_url+category+"/cover_images/"+cover_image;            
+            let image_path = env.app.gallery_directory+category+"/cover_images_500/"+cover_image;
+            let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;            
             utility.checkImage(image_path,image_access_path,function(new_image_url){
                 if(new_image_url){
                     value.cover_image = new_image_url;

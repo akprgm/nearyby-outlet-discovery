@@ -110,7 +110,7 @@ module.exports = {
     getOutletPics: function getOutletPics(dataObject, response){//getting outlet pics  
         if(validator.validateObjectId(dataObject.outlet_id)){
             let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
-            ImageModel.aggregate([{"$match":{"outlet_id":outlet_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,result){
+            ImageModel.aggregate([{"$match":{"outlet_id":outlet_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1,date:1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,result){
                 if(!err && result){ 
                     async.each(result,function(value,callback){
                         utility.checkOutletImage(value.image,value.category,500,function(image){

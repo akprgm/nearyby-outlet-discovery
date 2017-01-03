@@ -7,6 +7,7 @@ var ReviewModel = mongoose.model('review');
 var RatingModel = mongoose.model('rating');
 var CheckInModel = mongoose.model('checkIn');
 var ImageModel = mongoose.model('image');
+var env = require('../../env/development');
 module.exports = {
     newsFeed: function newsFeed(dataObject,response){
         if(validator.validateEmptyObject(dataObject) &&  typeof(dataObject.time)!='undefined'){
@@ -145,7 +146,6 @@ module.exports = {
                                             });
                                         }
                                     });
-                                    //findDataCallback(null);
                                 break;
                                 case "rating":
                                     lookup1.$lookup = {"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"};
@@ -163,7 +163,6 @@ module.exports = {
                                             findDataCallback(null);                                       
                                         }
                                     });
-                                    //findDataCallback(null);  
                                 break;
                                 case "checkIn":
                                     lookup1.$lookup = {"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"};
@@ -181,7 +180,6 @@ module.exports = {
                                             findDataCallback(null);
                                         }
                                     });
-                                    //findDataCallback(null);
                                 break;
                                 case "image":
                                     async.waterfall([
@@ -211,7 +209,7 @@ module.exports = {
                                         function(imagesArray,callback){
                                             lookup1.$lookup = {"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}
                                             match.$match ={"$and":[{"user_id":{"$ne":0}},{"_id":{"$nin":imagesArray}},timeBet]};
-                                            project.$project = {"_id":0,"image_id":"$_id","category":1,"image":1,"date":-1}
+                                            project.$project = {"_id":0,"image_id":"$_id","category":1,"image":1,"date":-1,"user_info._id":1,"user_info.image":1,"user_info.name":1}
                                             sort.$sort = {"date":-1};
                                             limit.$limit = limitConstant;
                                             query = new Array();
@@ -231,9 +229,7 @@ module.exports = {
                                                                 FinalResult = FinalResult.concat(result);
                                                                 callback(null);
                                                             }
-                                                        });
-                                                        //FinalResult = FinalResult.concat(result);
-                                                        //callback(null);                                        
+                                                        });                                       
                                                     }else{
                                                         callback(null);                                        
                                                     }
@@ -258,7 +254,17 @@ module.exports = {
                     },function(err){
                         if(!err){
                             FinalResult.sort(function compareNumbers(a, b) {return b.date - a.date;});
-                            utility.successDataRequest(FinalResult.slice(0,4),response);
+                            FinalResult = FinalResult.slice(0,4);
+                            async.map(FinalResult,function(value,userinfoCallback){
+                                value.user_info[0].image = (value.user_info[0].image)?value.user_info[0].image:env.app.default_profile;
+                                userinfoCallback(null,value);
+                            },function(err,result){
+                                if(!err){
+                                    utility.successDataRequest(result,response);                            
+                                }else{
+                                    utility.internalServerError(response);
+                                }
+                            })
                         }else{
                             utility.internalServerError(response);
                         }
