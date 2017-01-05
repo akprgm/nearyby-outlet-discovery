@@ -3,6 +3,7 @@ module.exports = {
         port:5000,
         url: "http://localhost/node/",
         gallery_url: "http://139.59.9.219/public/assets/gallery/",
+        images_url: "http://139.59.9.219/public/assets/images/",
         default_profile: "http://139.59.9.219/public/assets/images/default_profile.png",
         public_directory: "http://139.59.9.219/public/",
         base_directory: "/home/faagio/faagioNode/",

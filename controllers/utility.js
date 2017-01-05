@@ -221,7 +221,8 @@ module.exports = {
                 if(image_name){
                     value.outlet_info[0].cover_image = image_name;
                 }else{
-                    value.outlet_info[0].cover_image = env.app.gallery_url + "s.jpg";
+                    let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                    value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
                 }
             });
         },function(err){

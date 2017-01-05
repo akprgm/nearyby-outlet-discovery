@@ -148,6 +148,9 @@ module.exports = {
                                         break;
                                     }
                                 }
+                                if(i >= env.ranking.levels.length){
+                                    i=0;
+                                }
                                 let user_level = "Level "+i;
                                 let level_points = env.ranking.levels[i];
                                 if(points<500){

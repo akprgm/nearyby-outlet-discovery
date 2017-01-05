@@ -59,7 +59,8 @@ var OUTLET = {
                 if(new_image_url){
                     value.cover_image = new_image_url;
                 }else{
-                    value.cover_image = env.app.gallery_url+"/s.jpg";
+                    let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                    value.cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
                 }
                 //finding distance for outlet
                 let outletLatitude = value.location[1];
@@ -111,7 +112,7 @@ module.exports = {
                         function(innerCallback){
                             let offset = parseInt(dataObject.offset);
                             OutletModel.aggregate([
-                                {"$match":{"$text":{"$search":dataObject.search_string}}},{"$project":{"locality":1,"cover_image":1,"name":1,"star":1,"cost_rating":1,"location":1,"contacts":1}},{"$sort":{"score":{"$meta":"textScore"}}},{"$skip":offset},{"$limit":10}
+                                {"$match":{"$text":{"$search":dataObject.search_string}}},{"$project":{"locality":1,"category":1,"cover_image":1,"name":1,"star":1,"cost_rating":1,"location":1,"contacts":1}},{"$sort":{"score":{"$meta":"textScore"}}},{"$skip":offset},{"$limit":10}
                             ],function(err,result){
                                 if(!err && result){
                                     innerCallback(null,result)
@@ -160,6 +161,7 @@ module.exports = {
             let query = new Array();
             let project ={
                 $project:{
+                    category:1,
                     locality:1,
                     cover_image:1,
                     name:1,

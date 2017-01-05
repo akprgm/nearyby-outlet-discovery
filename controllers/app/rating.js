@@ -276,13 +276,25 @@ module.exports = {
                     utility.successDataRequest(ratings.slice(offset,offset+10),response);
                 }else{
                     let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-                    RatingModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                    RatingModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"$and":[{"user_id":user_id},{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}}]}},{"$project":{"_id":0,"rating_id":"$_id","date":1,"star":1,"user_info._id":1,"user_info.image":1,"user_info.name":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(err){
                             utility.internalServerError(response);
                         }else if(result.length>0){
-                            utility.outletDefaultCoverImage(result);
-                            utility.redisSaveKey(ratingKey,JSON.stringify(result));
-                            utility.successDataRequest(result.slice(offset,offset+10),response);
+                            result = result.slice(offset,offset+10);
+                            async.map(result,function(value,ratingUserInfoCallback){
+                                if(!value.user_info[0].image){
+                                    value.user_info[0].image = env.app.default_profile;
+                                }
+                                ratingUserInfoCallback(null,value);
+                            },function(err,result){
+                                if(err){
+                                    utility.internalServerError(response);
+                                }else{
+                                    utility.outletDefaultCoverImage(result);
+                                    utility.redisSaveKey(ratingKey,JSON.stringify(result));
+                                    utility.successDataRequest(result,response);
+                                }
+                            });
                         }else{
                             utility.failureRequest(response);
                         }
@@ -302,7 +314,7 @@ module.exports = {
                     utility.successDataRequest(reviews.slice(offset,offset+10),response);
                 }else{
                     let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-                    ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"review_id":"$_id","date":1,"star":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
+                    ReviewModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$lookup":{"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}},{"$match":{"$and":[{"user_id":user_id},{"review":{"$ne":""}},{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}}]}},{"$project":{"_id":0,"review_id":"$_id","date":1,"star":1,"user_info._id":1,"user_info.image":1,"user_info.name":1,"review":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(err){
                             utility.internalServerError(response);
                         }else if(result.length>0){
@@ -340,6 +352,9 @@ module.exports = {
                                     })
                                 },function(reviewCallback){
                                     async.map(result,function(value,reviewLikeCallback){
+                                        if(!value.user_info[0].image){
+                                            value.user_info[0].image = env.app.default_profile;
+                                        }
                                         ReviewLikeModel.find({"review_id":value.review_id},function(err,reviewLike){
                                             if(err){
                                                 reviewLikeCallback(err);

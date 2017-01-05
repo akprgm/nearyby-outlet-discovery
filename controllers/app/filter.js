@@ -18,7 +18,8 @@ var FILTER = {
                 if(new_image_url){
                     value.cover_image = new_image_url;
                 }else{
-                    value.cover_image = env.app.gallery_url+"images/default_shopping_"+category+Math.floor(Math.random() * 2) + 1  .jpg";
+                    let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                    value.cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
                 }
                 if(!bookMarks.length){
                     value.bookMark = false;
@@ -101,6 +102,7 @@ module.exports = {
             let obj;
             let project ={
                 $project:{
+                    category:1,
                     locality:1,
                     cover_image:1,
                     name:1,

@@ -58,7 +58,8 @@ module.exports = {
                                 if(new_image_url){
                                     obj.cover_image = new_image_url;
                                 }else{
-                                    obj.cover_image = env.app.gallery_url+"s.jpg";//default cover images 
+                                    let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                                    obj.cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
                                 }
                             });
                             switch(outlet.category){
