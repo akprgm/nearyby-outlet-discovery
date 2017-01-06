@@ -213,7 +213,12 @@ module.exports = {
                                     }
                                 }else{
                                     if(err==="exists"){
-                                        utility.conflictRequest(response);                                    
+                                        let data = {
+                                            status: false,
+                                            message: "User already exists."
+                                        }
+                                        response.statusCode = 409;
+                                        response.send(data);
                                     }else{
                                         utility.internalServerError(response);
                                     }

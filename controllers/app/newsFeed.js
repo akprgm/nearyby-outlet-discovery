@@ -119,7 +119,7 @@ module.exports = {
                                 case "review":
                                     lookup1.$lookup = {"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"};
                                     lookup2.$lookup = {"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}
-                                    match.$match = {"$and":[{"review":{"$ne":""},"outlet_info":{"$ne":[]}},timeBet]};  
+                                    match.$match = {"$and":[{"review":{"$ne":""},"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}},timeBet]};  
                                     project.$project = {"_id":0,"review_id":"$_id","date":1,"star":1,"review":1,"images":1,"likes":{"$size":"$likes"},"comments":{"$size":"$comments"},"outlet_info._id":1,"outlet_info.name":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.name":1};
                                     sort.$sort = {"date":-1};
                                     limit.$limit = limitConstant;                                      
@@ -150,7 +150,7 @@ module.exports = {
                                 case "rating":
                                     lookup1.$lookup = {"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"};
                                     lookup2.$lookup = {"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}
-                                    match.$match = {"$and":[{"outlet_info":{"$ne":[]}},timeBet]};  
+                                    match.$match = {"$and":[{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}},timeBet]};  
                                     project.$project = {"_id":0,"rating_id":"$_id","date":1,"star":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.name":1}
                                     sort.$sort = {"date":-1};
                                     limit.$limit = limitConstant                                        
@@ -167,7 +167,7 @@ module.exports = {
                                 case "checkIn":
                                     lookup1.$lookup = {"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"};
                                     lookup2.$lookup = {"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}
-                                    match.$match = {"$and":[{"outlet_info":{"$ne":[]}},timeBet]};
+                                    match.$match = {"$and":[{"outlet_info":{"$ne":[]}},{"user_info":{"$ne":[]}},timeBet]};
                                     project.$project = {"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.name":1};
                                     sort.$sort = {"date":-1};
                                     limit.$limit = limitConstant;                                        
@@ -208,7 +208,7 @@ module.exports = {
                                         },
                                         function(imagesArray,callback){
                                             lookup1.$lookup = {"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}
-                                            match.$match ={"$and":[{"user_id":{"$ne":0}},{"_id":{"$nin":imagesArray}},timeBet]};
+                                            match.$match ={"$and":[{"user_id":{"$ne":0}},{"user_info":{"$ne":[]}},{"_id":{"$nin":imagesArray}},timeBet]};
                                             project.$project = {"_id":0,"image_id":"$_id","category":1,"image":1,"date":-1,"user_info._id":1,"user_info.image":1,"user_info.name":1}
                                             sort.$sort = {"date":-1};
                                             limit.$limit = limitConstant;

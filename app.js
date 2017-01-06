@@ -23,10 +23,11 @@ client.on('connect', function() {
 client.on('error', function(err) {
     console.log('Connection failed to Redis');
 });
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false}));
+app.use(bodyParser.json({limit:'5mb'}));
+app.use(bodyParser.urlencoded({ extended: true,limit:'5mb'}));
 app.use(function(err,request, response, next) {//checking for bad request error
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        console.log(request.body);
         utility.badRequest(response);
     }else{
         next();

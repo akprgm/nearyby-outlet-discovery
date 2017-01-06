@@ -14,7 +14,7 @@ module.exports = {
     uploadImage: function uploadImage(dataObject, response){//upload image
         if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.outlet_id) && validator.validateCategory(dataObject.category) && typeof(dataObject.photos)=='string'){
             let dateTime = (new Date).getTime();
-            let imageName = dataObject.user_id+"_"+dataObject.category+"_"+dateTime+".jpg";
+            let imageName = dataObject.user_id+"_"+dataObject.category+"_"+dateTime;
             let imageObject = {
                 user_id: dataObject.user_id,
                 outlet_id: dataObject.outlet_id,
@@ -82,20 +82,28 @@ module.exports = {
         }
     },
     getUserPics: function getUserPics(dataObject, response){//getting user pics
-        if(validator.validateObjectId(dataObject.user_id)){
+        if(validator.validateObjectId(dataObject.user_id) && typeof(dataObject.offset)!='undefined'){
             let user_id = mongoose.Types.ObjectId(dataObject.user_id);
-            ImageModel.aggregate([{"$match":{"user_id":user_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,result){
+            let offset = parseInt(dataObject.offset);
+            ImageModel.aggregate([{"$match":{"user_id":user_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$skip":offset},{"$limit":10}],function(err,result){
                 if(!err && result){
-                    async.each(result,function(value,callback){
+                    async.map(result,function(value,callback){
                         utility.checkOutletImage(value.image,value.category,500,function(image){
-                            value.image= image;
-                            callback();
+                            if(image){
+                                value.image = image;
+                                callback(null,value);
+                            }else{
+                                value.image = image;
+                                callback(null);
+                            }
                         });
                     },function(err){
-                        if(!err){
-                            utility.successDataRequest(result,response);                                               
-                        }else{
+                        if(err){
                             utility.internalServerError(response);
+                        }else if(result){
+                            utility.successDataRequest(result,response);                                                                           
+                        }else{
+                            utility.failureRequest(response);
                         }
                     });
                 }else{
@@ -108,20 +116,28 @@ module.exports = {
         
     },
     getOutletPics: function getOutletPics(dataObject, response){//getting outlet pics  
-        if(validator.validateObjectId(dataObject.outlet_id)){
+        if(validator.validateObjectId(dataObject.outlet_id) && typeof(dataObject.offset)!='undefined'){
             let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
-            ImageModel.aggregate([{"$match":{"outlet_id":outlet_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1,date:1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,result){
+            let offset = parseInt(dataObject.offset);
+            ImageModel.aggregate([{"$match":{"outlet_id":outlet_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1,date:1}},{"$sort":{"date":-1}},{"$skip":offset},{"$limit":10}],function(err,result){
                 if(!err && result){ 
-                    async.each(result,function(value,callback){
+                    async.map(result,function(value,callback){
                         utility.checkOutletImage(value.image,value.category,500,function(image){
-                            value.image = image;
-                            callback();
+                            if(image){
+                                value.image = image;
+                                callback(null,value);
+                            }else{
+                                value.image = image;
+                                callback(null);
+                            } 
                         });
-                    },function(err){
-                        if(!err){
-                            utility.successDataRequest(result,response);                                               
-                        }else{
+                    },function(err,result){
+                        if(err){
                             utility.internalServerError(response);
+                        }else if(result.length){
+                            utility.successDataRequest(result,response);                                                                           
+                        }else{
+                            utility.failureRequest(response);
                         }
                     });
                 }else{

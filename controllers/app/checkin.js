@@ -3,6 +3,7 @@ var redis = require('redis');
 var async = require('async');
 var validator = require('../validator');
 var utility = require('../utility');
+var env = require('../../env/development');
 var UserModel = mongoose.model('user');
 var CheckInModel = mongoose.model('checkIn');
 module.exports = {
@@ -57,9 +58,29 @@ module.exports = {
                 }else{//looking in mongodbs
                     CheckInModel.aggregate([{"$lookup":{"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"}},{"$match":{"$and":[{"user_id":user_id},{"outlet_info":{"$ne":[]}}]}},{"$project":{"_id":0,"user_id":1,"date":1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1}},{"$sort":{"date":-1}}],function(err,result){
                         if(!err && result.length > 0){
-                            utility.outletDefaultCoverImage(result);
-                            utility.redisSaveKey(checkInKey,JSON.stringify(result));
-                            utility.successDataRequest(result.slice(offset,offset+10),response);//sending success response to client                              
+                            async.map(result,function(value,checkinUserInfoCallback){
+                                let cover_image = value.outlet_info[0].cover_image;
+                                let category = value.outlet_info[0].category;
+                                let image_path = env.app.gallery_directory+category+"/cover_images_500/"+cover_image;
+                                let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;
+                                utility.checkImage(image_path,image_access_path,function(new_image_url){
+                                    if(new_image_url){
+                                        value.outlet_info[0].cover_image = new_image_url;
+                                    }else{
+                                        let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                                        value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
+                                    }
+                                    checkinUserInfoCallback(null,value);
+                                });   
+                            },function(err,result){
+                                if(err){
+                                    utility.internalServerError(response);
+                                }else{
+                                    utility.outletDefaultCoverImage(result);
+                                    utility.redisSaveKey(checkInKey,JSON.stringify(result));
+                                    utility.successDataRequest(result.slice(offset,offset+10),response);//sending success response to client 
+                                }
+                            });                             
                         }else{
                             utility.failureRequest(response);
                         }

@@ -215,11 +215,13 @@ module.exports = {
         async.forEachOf(result,function(value,key,callback){
             let cover_image = value.outlet_info[0].cover_image;
             let category = value.outlet_info[0].category;
-            let image_path = env.app.gallery_directory+category+"/cover_images/"+cover_image;
-            let image_access_path = env.app.gallery_url+category+"/cover_images/"+cover_image;            
+            let image_path = env.app.gallery_directory+category+"/cover_images_500/"+cover_image;
+            let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;            
             module.exports.checkImage(image_path,image_access_path,function(image_name){
                 if(image_name){
                     value.outlet_info[0].cover_image = image_name;
+                    console.log("Yoyo");
+                    console.log(image_name);
                 }else{
                     let imageNameNo = Math.floor(Math.random() * 2) + 1;
                     value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
@@ -238,10 +240,10 @@ module.exports = {
     saveImage: function saveImage(imageObject,image,saveImagecallback){
         let imageBuff = new Buffer(image, 'base64');
         gm(imageBuff).identify(function(err,imageInfo){
-            let imagePathOriginal = env.app.gallery_directory+imageObject.category+"/gallery/images_original/"+imageObject.image;                        
             let imagePath1024 = env.app.gallery_directory+imageObject.category+"/gallery/images_1024/"+imageObject.image;
             let imagePath500 = env.app.gallery_directory+imageObject.category+"/gallery/images_500/"+imageObject.image;
-            if(imageInfo.format == 'JPEG'){
+            if(imageInfo.format == 'JPEG' || imageInfo.format =='PNG'){
+                let imagePathOriginal = env.app.gallery_directory+imageObject.category+"/gallery/images_original/"+imageObject.image+"."+imageInfo.format;                        
                 async.parallel([
                     function(imageCallback){
                         gm(imageBuff).autoOrient().write(imagePathOriginal,function(err){
@@ -288,7 +290,8 @@ module.exports = {
                     }
                 });
             }else{
-                 async.parallel([
+                let imagePathOriginal = env.app.gallery_directory+imageObject.category+"/gallery/images_original/"+imageObject.image+".jpg";                                        
+                async.parallel([
                     function(imageCallback){
                         gm(imageBuff).write(imagePathOriginal,function(err){
                             if(err){

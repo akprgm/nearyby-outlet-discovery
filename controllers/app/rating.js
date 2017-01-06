@@ -29,7 +29,7 @@ module.exports = {
                     obj.images = new Array();
                     async.each(dataObject.photos,function(photo,photoCallBack){
                         let dateTime = (new Date).getTime();
-                        let imageName = obj.user_id+"_"+obj.category+"_"+dateTime+".jpg";
+                        let imageName = obj.user_id+"_"+obj.category+"_"+dateTime;
                         let imageObject = {
                             user_id: dataObject.user_id,
                             outlet_id: dataObject.outlet_id,
@@ -282,15 +282,26 @@ module.exports = {
                         }else if(result.length>0){
                             result = result.slice(offset,offset+10);
                             async.map(result,function(value,ratingUserInfoCallback){
-                                if(!value.user_info[0].image){
-                                    value.user_info[0].image = env.app.default_profile;
-                                }
-                                ratingUserInfoCallback(null,value);
+                                let cover_image = value.outlet_info[0].cover_image;
+                                let category = value.outlet_info[0].category;
+                                let image_path = env.app.gallery_directory+category+"/cover_images_500/"+cover_image;
+                                let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;
+                                utility.checkImage(image_path,image_access_path,function(new_image_url){
+                                    if(new_image_url){
+                                        value.outlet_info[0].cover_image = new_image_url;
+                                    }else{
+                                        let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                                        value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
+                                    }
+                                    if(!value.user_info[0].image){
+                                        value.user_info[0].image = env.app.default_profile;
+                                    }
+                                    ratingUserInfoCallback(null,value);
+                                });   
                             },function(err,result){
                                 if(err){
                                     utility.internalServerError(response);
                                 }else{
-                                    utility.outletDefaultCoverImage(result);
                                     utility.redisSaveKey(ratingKey,JSON.stringify(result));
                                     utility.successDataRequest(result,response);
                                 }
@@ -306,7 +317,7 @@ module.exports = {
         }
     },
     getUserReviews: function getUserReviews(dataObject, response){//getting user reviews for particular outlet
-        if(validator.validateObjectId(dataObject.user_id) && validator.validateOffset(dataObject.offset)){      
+        if(validator.validateObjectId(dataObject.user_id) && validator.validateObjectId(dataObject.profile_id) && validator.validateOffset(dataObject.offset)){      
             let reviewKey = dataObject.user_id+":reviews"; 
             let offset = parseInt(dataObject.offset);
             utility.redisFindKey(reviewKey,function(result){
@@ -321,6 +332,18 @@ module.exports = {
                             async.parallel([
                                 function(reviewCallback){
                                     async.map(result,function(value,reviewImageCallback){
+                                        let cover_image = value.outlet_info[0].cover_image;
+                                        let category = value.outlet_info[0].category;
+                                        let image_path = env.app.gallery_directory+category+"/cover_images_500/"+cover_image;
+                                        let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;
+                                        utility.checkImage(image_path,image_access_path,function(new_image_url){
+                                            if(new_image_url){
+                                                value.outlet_info[0].cover_image = new_image_url;
+                                            }else{
+                                                let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                                                value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
+                                            }
+                                        });
                                         let review_id = mongoose.Types.ObjectId(dataObject.review_id);
                                         ImageModel.aggregate([{"$match":{"review_id":review_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,images){
                                             if(!err && images){
@@ -355,7 +378,7 @@ module.exports = {
                                         if(!value.user_info[0].image){
                                             value.user_info[0].image = env.app.default_profile;
                                         }
-                                        ReviewLikeModel.find({"review_id":value.review_id},function(err,reviewLike){
+                                        ReviewLikeModel.find({"$and":[{"review_id":value.review_id},{"user_id":dataObject.profile_id}]},function(err,reviewLike){
                                             if(err){
                                                 reviewLikeCallback(err);
                                             }else{
@@ -380,7 +403,6 @@ module.exports = {
                                 if(err){
                                     utility.internalServerError(response);
                                 }else{
-                                    utility.outletDefaultCoverImage(result);
                                     utility.redisSaveKey(reviewKey,JSON.stringify(result));
                                     utility.successDataRequest(result.slice(offset,offset+10),response);
                                 }
@@ -411,6 +433,18 @@ module.exports = {
                             async.parallel([
                                 function(reviewCallback){
                                     async.map(result,function(value,reviewImageCallback){
+                                        let cover_image = value.outlet_info[0].cover_image;
+                                        let category = value.outlet_info[0].category;
+                                        let image_path = env.app.gallery_directory+category+"/cover_images_500/"+cover_image;
+                                        let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;
+                                        utility.checkImage(image_path,image_access_path,function(new_image_url){
+                                            if(new_image_url){
+                                                value.outlet_info[0].cover_image = new_image_url;
+                                            }else{
+                                                let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                                                value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
+                                            }
+                                        });
                                         if(!value.user_info[0].image){
                                             value.user_info[0].image = env.app.default_profile;
                                         }

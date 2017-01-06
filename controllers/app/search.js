@@ -143,7 +143,6 @@ module.exports = {
                 }
             ],function(err,result){
                 if(err){
-                    console.log(err);
                     utility.internalServerError(response);
                 }else{
                     utility.successDataRequest(result,response);
