@@ -178,6 +178,9 @@ router.get('/feedback',function(request,response){
 router.post('/getToken',function(request,response){//route for getting new token when old expires
     auth.getToken(request.body,response)
 });
+router.post('./forgetPwd',function(request,response){
+    user.forgetPassword(request.body,response);
+});
 router.post('/verifyToken',function(request,response){
     utility.verifyToken(request.body.access_token,'access',response,function(){
         response.send("token valid");

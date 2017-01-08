@@ -256,5 +256,12 @@ module.exports = {
         }else{
             utility.badRequest(response);
         }
+    },
+    forgetPassword: function forgetPassword(dataObject,response){
+        if(validator.validateObjectId(dataObject.user_id) && validator.validateEmail(dataObject.user_email) && validator.validatePassword(dataObject.old_password) && validator.validatePassword(dataObject.new_password)){
+            utility.successRequest(response);
+        }else{
+            utility.badRequest(response);
+        }
     }  
 }

@@ -7,6 +7,8 @@ var ReviewModel = mongoose.model('review');
 var RatingModel = mongoose.model('rating');
 var CheckInModel = mongoose.model('checkIn');
 var ImageModel = mongoose.model('image');
+var ImageLikeModel = mongoose.model('imageLike');
+var ImageCommentModel = mongoose.model('imageComment');
 var env = require('../../env/development');
 module.exports = {
     newsFeed: function newsFeed(dataObject,response){
@@ -208,20 +210,36 @@ module.exports = {
                                         },
                                         function(imagesArray,callback){
                                             lookup1.$lookup = {"from":"users","localField":"user_id","foreignField":"_id","as":"user_info"}
-                                            match.$match ={"$and":[{"user_id":{"$ne":0}},{"user_info":{"$ne":[]}},{"_id":{"$nin":imagesArray}},timeBet]};
-                                            project.$project = {"_id":0,"image_id":"$_id","category":1,"image":1,"date":-1,"user_info._id":1,"user_info.image":1,"user_info.name":1}
+                                            lookup2.$lookup = {"from":"outlets","localField":"outlet_id","foreignField":"_id","as":"outlet_info"};
+                                            match.$match ={"$and":[{"outlet_info":{"$ne":[]}},{"user_id":{"$ne":0}},{"user_info":{"$ne":[]}},{"_id":{"$nin":imagesArray}},timeBet]};
+                                            project.$project = {"_id":0,"image_id":"$_id","category":1,"image":1,"date":-1,"outlet_info._id":1,"outlet_info.name":1,"outlet_info.cover_image":1,"outlet_info.locality":1,"outlet_info.category":1,"user_info._id":1,"user_info.image":1,"user_info.name":1}
                                             sort.$sort = {"date":-1};
                                             limit.$limit = limitConstant;
                                             query = new Array();
-                                            query.push(lookup1,match,project,sort,limit);
+                                            query.push(lookup1,lookup2,match,project,sort,limit);
                                             ImageModel.aggregate(query,function(err,result){
                                                 if(!err && result){
-                                                    if(result.length){
+                                                    if(result.length){                                                                                                                    
                                                         async.each(result,function(value,checkCallback){
+                                                            ImageLikeModel.find({"image_id":value._id},function(err,imageLikes){
+                                                                if(err){
+                                                                    checkCallback(err);
+                                                                }else{
+                                                                    value.like = imageLikes.length
+                                                                }
+                                                            });
+                                                            ImageCommentModel.find({"image_id":value._id},{"user_id":1,"comment":1,"date":1},{"sort":{"date":-1}},function(err,imageComment){
+                                                                if(err){
+                                                                    checkCallback(err);
+                                                                }else{  
+                                                                    //manipulating comment getting user pic and name
+                                                                    value.comment = imageComment.length;
+                                                                }
+                                                            });
                                                             utility.checkOutletImage(value.image,value.category,1024,function(image){
                                                                 value.image = image;
+                                                                checkCallback(null);                                                                
                                                             })
-                                                            checkCallback(null);
                                                         },function(err){
                                                             if(err){
                                                                 callback(err);
@@ -257,7 +275,19 @@ module.exports = {
                             FinalResult = FinalResult.slice(0,4);
                             async.map(FinalResult,function(value,userinfoCallback){
                                 value.user_info[0].image = (value.user_info[0].image)?value.user_info[0].image:env.app.default_profile;
-                                userinfoCallback(null,value);
+                                let cover_image = value.outlet_info[0].cover_image;
+                                let category = value.outlet_info[0].category;
+                                let image_path = env.app.gallery_directory+category+"/cover_images_500/"+cover_image;
+                                let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;
+                                utility.checkImage(image_path,image_access_path,function(new_image_url){
+                                    if(new_image_url){
+                                        value.outlet_info[0].cover_image = new_image_url;
+                                    }else{
+                                        let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                                        value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
+                                    }
+                                    userinfoCallback(null,value);
+                                });
                             },function(err,result){
                                 if(!err){
                                     utility.successDataRequest(result,response);                            

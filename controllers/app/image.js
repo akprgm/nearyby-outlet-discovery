@@ -87,10 +87,12 @@ module.exports = {
             let offset = parseInt(dataObject.offset);
             ImageModel.aggregate([{"$match":{"user_id":user_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$skip":offset},{"$limit":10}],function(err,result){
                 if(!err && result){
+                    let newResult = new Array();
                     async.map(result,function(value,callback){
                         utility.checkOutletImage(value.image,value.category,500,function(image){
                             if(image){
                                 value.image = image;
+                                newResult.push(value);
                                 callback(null,value);
                             }else{
                                 value.image = image;
@@ -100,8 +102,8 @@ module.exports = {
                     },function(err){
                         if(err){
                             utility.internalServerError(response);
-                        }else if(result){
-                            utility.successDataRequest(result,response);                                                                           
+                        }else if(newResult.length){
+                            utility.successDataRequest(newResult,response);                                                                           
                         }else{
                             utility.failureRequest(response);
                         }
@@ -120,11 +122,13 @@ module.exports = {
             let outlet_id = mongoose.Types.ObjectId(dataObject.outlet_id);
             let offset = parseInt(dataObject.offset);
             ImageModel.aggregate([{"$match":{"outlet_id":outlet_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1,date:1}},{"$sort":{"date":-1}},{"$skip":offset},{"$limit":10}],function(err,result){
-                if(!err && result){ 
+                if(!err && result){
+                    let newResult= new Array(); 
                     async.map(result,function(value,callback){
                         utility.checkOutletImage(value.image,value.category,500,function(image){
                             if(image){
                                 value.image = image;
+                                newResult.push(value);
                                 callback(null,value);
                             }else{
                                 value.image = image;
@@ -134,8 +138,8 @@ module.exports = {
                     },function(err,result){
                         if(err){
                             utility.internalServerError(response);
-                        }else if(result.length){
-                            utility.successDataRequest(result,response);                                                                           
+                        }else if(newResult.length){
+                            utility.successDataRequest(newResult,response);                                                                           
                         }else{
                             utility.failureRequest(response);
                         }
@@ -149,7 +153,7 @@ module.exports = {
         }    
     },
     getImageDetails: function getImageDetails(dataObject, response){//getting image details
-        if(validator.validateObjectId(dataObject.image_id)){
+        if(validator.validateObjectId(dataObject.image_id) && validator.validateObjectId(dataObject.user_id)){
             ImageModel.findOne({"_id":dataObject.image_id},{"category":1,"user_id":1,"outlet_id":1,"image":1,"uploaded_by":1,"date":1},function(err,image){
                 if(err){
                     utility.internalServerError(response);
@@ -162,6 +166,16 @@ module.exports = {
                                     imageDetailsCallback(err);
                                 }else{
                                     imageDetailsCallback(null,imageLikes.length);
+                                }
+                            });
+                        },
+                        function(imageDetailsCallback){//finding comments on image
+                            ImageCommentModel.find({"image_id":dataObject.image_id},{"user_id":1,"comment":1,"date":1},{"sort":{"date":-1}},function(err,imageComment){
+                                if(err){
+                                    imageDetailsCallback(err);
+                                }else{  
+                                    //manipulating comment getting user pic and name
+                                    imageDetailsCallback(null,imageComment.length);
                                 }
                             });
                         },
@@ -234,7 +248,8 @@ module.exports = {
                             utility.internalServerError(response);
                         }else{
                             image.likes = result[0];
-                            image.comments = result[1];
+                            image.commentCout = result[1];
+                            image.comments = result[2];
                             utility.successDataRequest(image,response);
                         }
                     })
