@@ -159,6 +159,7 @@ module.exports = {
                     utility.internalServerError(response);
                 }else if(!err && image){//finding comments and others info about image
                     image = image.toObject();
+                    image.image = env.app.gallery_url+image.category+"/gallery/images_1024/"+image.image;
                     async.parallel([
                         function(imageDetailsCallback){//finding total no of likes 
                             ImageLikeModel.find({"image_id":dataObject.image_id},function(err,imageLikes){
@@ -169,7 +170,7 @@ module.exports = {
                                 }
                             });
                         },
-                        function(imageDetailsCallback){//finding comments on image
+                        function(imageDetailsCallback){//finding comments count
                             ImageCommentModel.find({"image_id":dataObject.image_id},{"user_id":1,"comment":1,"date":1},{"sort":{"date":-1}},function(err,imageComment){
                                 if(err){
                                     imageDetailsCallback(err);
@@ -213,7 +214,7 @@ module.exports = {
                                         imageDetailsCallback(err);
                                     }else{  
                                         image.user_name = user.name;
-                                        image.user_image = (user.image)?(user.image):"defualt image";
+                                        image.user_image = (user.image)?(user.image):env.app.default_profile;
                                         imageDetailsCallback(null);
                                     }
                                 });
@@ -258,6 +259,7 @@ module.exports = {
                 }
             });
         }else{
+            //response.send(validator.validateObjectId(dataObject.image_id));
             utility.badRequest(response);
         }
     },

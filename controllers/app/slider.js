@@ -33,7 +33,7 @@ module.exports = {
         let obj5 = {
             outlet_id : '582d74d0136ff74d38d7fb41',
             outlet_name :'Kapoor Watch Co.',
-            cover_image : 'http://139.59.9.219/public/assets/gallery/watch/cover_images_500/1464161396kapoor-watch-co.-ambi-gurg2.jpg',
+            cover_image : 'http://139.59.9.219/public/assets/gallery/watch/cover_images_full/1464161396kapoor-watch-co.-ambi-gurg1.jpg',
             categoryType :'watch',
             location  : 'Ambience Mall, Gurgaon'
         }
