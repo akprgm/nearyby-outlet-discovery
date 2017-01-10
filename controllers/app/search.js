@@ -67,21 +67,20 @@ var OUTLET = {
                 let outletLongitude = value.location[0];
                 let distance = (6371*2*Math.asin(Math.sqrt(Math.pow(Math.sin((latitude - outletLatitude)*Math.PI/180/2),2) + Math.cos(latitude*Math.PI/180)*Math.cos(outletLatitude*Math.PI/180)*Math.pow(Math.sin((longitude -outletLongitude)*Math.PI/180/2),2))));
                 value.distance = distance;
-                if(!bookMarks){
+                if(!bookMarks.length){
                     value.bookMark = false;
                 }
+                let flag = false;
                 async.map(bookMarks,function(bookmark,bookMarkCallBack){
-                    let flag = false;
                     if(JSON.stringify(bookmark.outlet_id) === JSON.stringify(value._id)){
                         value.bookMark = true;
                         flag = true;
-                        bookMarkCallBack(null);  
                     }else{
-                        value.bookMark = false;
+                        if(!flag){
+                            value.bookMark = false;                        
+                        }
                     }
-                    if(!flag){
-                        bookMarkCallBack(null);                    
-                    }
+                    bookMarkCallBack(null);  
                 });
                 valueCallBack(null,value);
             });

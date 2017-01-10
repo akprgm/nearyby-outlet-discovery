@@ -7,6 +7,7 @@ var ReviewModel = mongoose.model('review');
 var RatingModel = mongoose.model('rating');
 var CheckInModel = mongoose.model('checkIn');
 var ImageModel = mongoose.model('image');
+var ReviewLikeModel = mongoose.model('reviewLike'); 
 var ImageLikeModel = mongoose.model('imageLike');
 var ImageCommentModel = mongoose.model('imageComment');
 var env = require('../../env/development');
@@ -129,18 +130,77 @@ module.exports = {
                                     query.push(lookup1,lookup2,match,project,sort,limit);
                                     ReviewModel.aggregate(query,function(err,result){
                                         if(!err && result.length>0){
-                                            utility.outletDefaultCoverImage(result);                                                
-                                            async.map(result,function(value,imageFindCallback){
-                                                let images = value.images;
-                                                ImageModel.find({"_id":{"$in":images}},{"image":1},function(err,imageResult){
-                                                    if(!err && imageResult){
-                                                        value.images = imageResult;
-                                                    }else{
-                                                        value.images = new Array();
-                                                    }
-                                                    imageFindCallback();
-                                                });
-                                            },function(err,images){
+                                            async.parallel([
+                                                function(reviewCallback){
+                                                    async.map(result,function(value,reviewImageCallback){
+                                                        let cover_image = value.outlet_info[0].cover_image;
+                                                        let category = value.outlet_info[0].category;
+                                                        let image_path = env.app.gallery_directory+category+"/cover_images_500/"+cover_image;
+                                                        let image_access_path = env.app.gallery_url+category+"/cover_images_500/"+cover_image;
+                                                        utility.checkImage(image_path,image_access_path,function(new_image_url){
+                                                            if(new_image_url){
+                                                                value.outlet_info[0].cover_image = new_image_url;
+                                                            }else{
+                                                                let imageNameNo = Math.floor(Math.random() * 2) + 1;
+                                                                value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
+                                                            }
+                                                        });
+                                                        let review_id = mongoose.Types.ObjectId(value.review_id);
+                                                        ImageModel.aggregate([{"$match":{"review_id":review_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,images){
+                                                            if(!err && images){
+                                                                let photos = new Array();
+                                                                async.each(images,function(value,checkImageCallback){
+                                                                    utility.checkOutletImage(value.image,value.category,500,function(image){
+                                                                        photos.push(value);
+                                                                        checkImageCallback();
+                                                                    });
+                                                                },function(err){
+                                                                    if(!err){
+                                                                        value.photos = photos;
+                                                                        reviewImageCallback(null);                                               
+                                                                    }else{
+                                                                        reviewImageCallback(err);
+                                                                    }
+                                                                });
+                                                            }else{
+                                                                reviewImageCallback(err);
+                                                            }
+                                                        });
+                                                    },function(err,result){
+                                                        if(err){
+                                                            reviewCallback(err);
+                                                        }else{
+                                                            reviewCallback(null);
+                                                        }
+                                                        
+                                                    })
+                                                },function(reviewCallback){
+                                                    async.map(result,function(value,reviewLikeCallback){
+                                                        if(!value.user_info[0].image){
+                                                            value.user_info[0].image = env.app.default_profile;
+                                                        }
+                                                        ReviewLikeModel.find({"$and":[{"review_id":value.review_id},{"user_id":dataObject.profile_id}]},function(err,reviewLike){
+                                                            if(err){
+                                                                reviewLikeCallback(err);
+                                                            }else{
+                                                                if(reviewLike.length){
+                                                                    value.liked = true;
+                                                                    reviewLikeCallback(null);
+                                                                }else{
+                                                                    value.liked = false;
+                                                                    reviewLikeCallback(null);
+                                                                }
+                                                            }
+                                                        })
+                                                    },function(err,result){
+                                                        if(err){
+                                                            reviewCallback(err);
+                                                        }else{
+                                                            reviewCallback(null);
+                                                        }
+                                                    });
+                                                }
+                                            ],function(err){
                                                 if(!err){
                                                     FinalResult = FinalResult.concat(result);
                                                     findDataCallback(null);

@@ -344,7 +344,7 @@ module.exports = {
                                                 value.outlet_info[0].cover_image = env.app.images_url+"default_shopping_"+category+imageNameNo+".jpg";
                                             }
                                         });
-                                        let review_id = mongoose.Types.ObjectId(dataObject.review_id);
+                                        let review_id = mongoose.Types.ObjectId(value.review_id);
                                         ImageModel.aggregate([{"$match":{"review_id":review_id}},{"$project":{"_id":0,"image_id":"$_id","image":1,"category":1}},{"$sort":{"date":-1}},{"$limit":10}],function(err,images){
                                             if(!err && images){
                                                 let photos = new Array();

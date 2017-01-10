@@ -238,8 +238,11 @@ module.exports = {
                             ImageLikeModel.findOne({"$and":[{"image_id":dataObject.image_id},{"user_id":dataObject.user_id}]},function(err,likeCheck){
                                 if(err){
                                     imageDetailsCallback(err);
-                                }else{
+                                }else if(!err && likeCheck){
                                     image.liked = true;
+                                    imageDetailsCallback(null);
+                                }else{
+                                    image.liked = false;
                                     imageDetailsCallback(null);
                                 }
                             });
@@ -278,7 +281,7 @@ module.exports = {
                             }else{
                                 value = value.toObject();
                                 value["user_name"] = user.name;
-                                value['user_image'] = (user.image)?(user.image):"defualt image";
+                                value['user_image'] = (user.image)?(user.image):env.app.default_profile ;
                                 commentDetailsCallback(null,value);
                             }
                         });
